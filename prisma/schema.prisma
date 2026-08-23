@@ -11,3 +11,152 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id           String        @id @default(uuid())
+  clerkUserId  String        @unique
+  email        String        @unique
+  phoneNumber  String?       @unique
+  name         String?
+  imageUrl     String?
+  transactions Transaction[]
+  accounts     Account[]
+  budgets      Budget[]
+  savingsGoals SavingsGoal[]
+  bills        Bill[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  id           String        @id @default(uuid())
+  name         String
+  type         AccountType
+  balance      Decimal       @default(0)
+  isDefault    Boolean       @default(false)
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  bills        Bill[]
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+enum AccountType {
+  DEBIT
+  CREDIT
+  SAVINGS
+}
+
+model Transaction {
+  id                String             @id @default(uuid())
+  type              TransactionType
+  amount            Decimal
+  description       String?
+  date              DateTime
+  category          CategoryType
+  receiptUrl        String?
+  isRecurring       Boolean            @default(false)
+  recurringInterval RecurringInterval?
+  nextRecurringDate DateTime?
+  lastProcessed     DateTime?
+  status            TransactionStatus  @default(COMPLETED)
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId         String
+  account           Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([accountId])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum RecurringInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Budget {
+  id            String       @id @default(uuid())
+  amount        Decimal
+  lastAlertSent DateTime?
+  category      CategoryType
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+  @@map("budgets")
+}
+
+enum CategoryType {
+  GROCERIES
+  DINING
+  SHOPPING
+  ENTERTAINMENT
+  TRANSPORTATION
+  TRAVEL
+  HOUSING
+  UTILITIES
+  INCOME
+  OTHER
+}
+
+model SavingsGoal {
+  id            String    @id @default(uuid())
+  name          String
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetAmount  Decimal
+  currentAmount Decimal
+  targetDate    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("savingsGoals")
+}
+
+model Bill {
+  id                String             @id @default(uuid())
+  name              String
+  amount            Decimal
+  dueDate           DateTime
+  category          CategoryType
+  isRecurring       Boolean            @default(true)
+  recurringInterval RecurringInterval?
+  isAutoPay         Boolean            @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([accountId])
+  @@map("bills")
+}
