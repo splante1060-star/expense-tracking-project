@@ -19,14 +19,14 @@ export default function HeroSection() {
             Your money. Your plan. Your future.
           </p>
 
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-slate-900">
+          <h2 className="text-4xl lg:text-6xl font-bold leading-tight tracking-tight text-slate-900">
             A simpler way to <br />
             <span className="text-blue-600">track</span>,{" "}
             <span className="text-purple-600">plan</span>, and{" "}
             <span className="text-green-600">save</span> for what matters.
           </h2>
 
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
+          <p className="mt-6 max-w-2xl text-base lg:text-lg leading-relaxed text-slate-600">
             Pocket helps you understand your spending, plan for upcoming
             expenses, and build realistic savings goals so you can feel
             confident about your financial future.
@@ -78,7 +78,7 @@ export default function HeroSection() {
           </div>
 
           {/* CTA */}
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
             <Link
               href="/sign-up"
               className="group inline-flex h-12 items-center justify-center gap-3 rounded-full bg-purple-600 px-6 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-purple-700 hover:shadow-lg"
@@ -106,7 +106,7 @@ export default function HeroSection() {
         </div>
 
         {/* -- RIGHT COLUMN -- */}
-        <div className="relative mt-10 lg:mt-0">
+        <div className="relative mt-0">
           <div className="absolute -inset-8 -z-10 rounded-full bg-blue-100/50 blur-3xl" />
 
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2 shadow-xl">

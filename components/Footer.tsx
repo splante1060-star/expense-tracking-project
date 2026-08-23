@@ -1,12 +1,25 @@
+import { Heart, LockKeyhole } from "lucide-react";
+
 export default function Footer() {
   return (
-    <footer className="bg-blue-50 py-12">
-      <div className="container mx-auto px-4 text-center text-gray-600">
-        <p>
-          A simpler way to understand spending, plan ahead, and save for what
-          matters.
-        </p>
-        <p>Made by Sophie Plante ♡ </p>
+    <footer className=" border-slate-200 bg-white px-6 py-8">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+        <div>
+          <p className="text-sm font-medium text-slate-700">
+            A simpler way to track, plan, and save for what matters.
+          </p>
+
+          <p className="mt-1 flex items-center justify-center gap-1 text-xs text-slate-500 sm:justify-start">
+            Made with
+            <Heart size={12} className="fill-purple-500 text-purple-500" />
+            by Sophie Plante
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <LockKeyhole size={13} />
+          <span>Private personal finance</span>
+        </div>
       </div>
     </footer>
   );

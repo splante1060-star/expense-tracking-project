@@ -22,7 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <body className={`${inter.className} min-h-screen flex flex-col`}>
           <Header />
 
-          <main className="min-h-screen flex pt-30">{children}</main>
+          <main className="min-h-screen w-full pt-30">{children}</main>
 
           <Footer />
         </body>
