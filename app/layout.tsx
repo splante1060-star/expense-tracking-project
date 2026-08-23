@@ -4,6 +4,7 @@ import "./globals.css";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -15,14 +16,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`h-full`}>
-      <body className={`${inter.className} min-h-full flex flex-col`}>
-        <Header />
+    <ClerkProvider>
+      <html lang="en" className={`h-full`}>
+        <body className={`${inter.className} min-h-full flex flex-col`}>
+          <Header />
 
-        <main className="min-h-screen">{children}</main>
+          <main className="min-h-screen">{children}</main>
 
-        <Footer />
-      </body>
-    </html>
+          <Footer />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
