@@ -3,8 +3,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "./ui/button";
 import { LayoutDashboard, PenBox } from "lucide-react";
+import { checkUser } from "@/lib/checkUser";
 
-export default function Header() {
+const Header = async () => {
+  await checkUser();
+
   return (
     <div className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b">
       <nav className="w-full px-4 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between">
@@ -55,4 +58,6 @@ export default function Header() {
       </nav>
     </div>
   );
-}
+};
+
+export default Header;
