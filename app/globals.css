@@ -128,3 +128,18 @@
     @apply font-sans;
   }
 }
+
+@keyframes pocket-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+.animate-pocket-float {
+  animation: pocket-float 3.5s ease-in-out infinite;
+}
