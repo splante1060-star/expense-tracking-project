@@ -15,15 +15,17 @@ export default function HeroSection() {
       <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* -- LEFT COLUMN -- */}
         <div className="max-w-2xl">
-          <p className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 mb-6">
+          <p className="mb-6 inline-flex items-center rounded-full border border-(--pocket-blue-soft) bg-(--pocket-blue-light) px-4 py-2 text-sm font-medium text-(--pocket-blue)">
+            {" "}
             Your money. Your plan. Your future.
           </p>
 
-          <h2 className="text-4xl lg:text-6xl font-bold leading-tight tracking-tight text-slate-900">
+          <h2 className="text-4xl font-bold leading-tight tracking-tight text-slate-900 lg:text-6xl">
             A simpler way to <br />
-            <span className="text-blue-600">track</span>,{" "}
-            <span className="text-purple-600">plan</span>, and{" "}
-            <span className="text-green-600">save</span> for what matters.
+            <span className="text-(--pocket-blue)">track</span>,{" "}
+            <span className="text-(--pocket-purple)">plan</span>, and{" "}
+            <span className="text-(--pocket-green)">save</span> for what
+            matters.
           </h2>
 
           <p className="mt-6 max-w-2xl text-base lg:text-lg leading-relaxed text-slate-600">
@@ -35,7 +37,7 @@ export default function HeroSection() {
           {/* FEATURES */}
           <div className="mt-10 grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-(--pocket-blue-light) text-(--pocket-blue)">
                 <ChartNoAxesCombined size={28} />
               </div>
 
@@ -49,7 +51,8 @@ export default function HeroSection() {
             </div>
 
             <div>
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              {/* Plan Ahead */}
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 text-(--pocket-purple)">
                 <CalendarDays size={28} />
               </div>
 
@@ -63,7 +66,8 @@ export default function HeroSection() {
             </div>
 
             <div>
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              {/* Reach Goals */}
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-(--pocket-green)">
                 <Target size={28} />
               </div>
 
@@ -81,7 +85,7 @@ export default function HeroSection() {
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
             <Link
               href="/sign-up"
-              className="group inline-flex h-12 items-center justify-center gap-3 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg"
+              className="group inline-flex h-12 items-center justify-center gap-3 rounded-full bg-(--pocket-blue) px-6 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-(--pocket-blue-dark) hover:shadow-lg"
             >
               Create Your Account
               <ArrowRight
@@ -92,7 +96,7 @@ export default function HeroSection() {
 
             <Link
               href="/sign-in"
-              className="group inline-flex h-12 items-center justify-center gap-3 rounded-full border-2 border-slate-200 bg-white px-6 text-sm font-semibold text-slate-900 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50"
+              className="group inline-flex h-12 items-center justify-center gap-3 rounded-full border-2 border-slate-200 bg-white px-6 text-sm font-semibold text-slate-900 transition-all duration-300 hover:-translate-y-0.5 hover:border-(--pocket-blue-soft) hover:bg-(--pocket-blue-light)"
             >
               Log in
             </Link>
@@ -107,8 +111,7 @@ export default function HeroSection() {
 
         {/* -- RIGHT COLUMN -- */}
         <div className="relative mt-0">
-          <div className="absolute -inset-8 -z-10 rounded-full bg-blue-100/50 blur-3xl" />
-
+          <div className="absolute -inset-8 -z-10 rounded-full bg-(--pocket-blue-light) blur-3xl" />
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2 shadow-xl">
             <Image
               src="/pocket-dashboard-mock.png"
