@@ -11,7 +11,7 @@ import {
 
 export default function HeroSection() {
   return (
-    <section className="w-full px-10 pt-0 pb-12 sm:px-6 lg:px-12 lg:py-20">
+    <section className="w-full px-10 pt-0 pb-12 sm:px-6 lg:px-12">
       <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* -- LEFT COLUMN -- */}
         <div className="max-w-2xl">
