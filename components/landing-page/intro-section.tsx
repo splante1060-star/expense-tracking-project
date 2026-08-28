@@ -2,7 +2,7 @@ import { LockKeyhole, Zap, Smartphone, HeartHandshake } from "lucide-react";
 
 export default function IntroSection() {
   return (
-    <section className="w-full bg-linear-to-b from-purple-100 via-purple-50 to-white px-6 pt-14 pb-20 lg:px-12">
+    <section className="w-full bg-linear-to-b from-blue-100 via-blue-50 to-white px-6 pt-14 pb-20 lg:px-12">
       {" "}
       <div className="mx-auto max-w-6xl">
         <h2 className="text-center text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -11,7 +11,7 @@ export default function IntroSection() {
 
         <div className="mt-10 grid grid-cols-2 gap-8 lg:grid-cols-4">
           <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-purple-600 shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm">
               <LockKeyhole size={24} />
             </div>
 
@@ -25,7 +25,7 @@ export default function IntroSection() {
           </div>
 
           <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-purple-600 shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm">
               <Zap size={24} />
             </div>
 
@@ -39,7 +39,7 @@ export default function IntroSection() {
           </div>
 
           <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-purple-600 shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm">
               <Smartphone size={24} />
             </div>
 
@@ -53,7 +53,7 @@ export default function IntroSection() {
           </div>
 
           <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-purple-600 shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm">
               <HeartHandshake size={24} />
             </div>
 

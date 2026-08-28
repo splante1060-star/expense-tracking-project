@@ -11,7 +11,7 @@ export default function Footer() {
 
           <p className="mt-1 flex items-center justify-center gap-1 text-xs text-slate-500 sm:justify-start">
             Made with
-            <Heart size={12} className="fill-purple-500 text-purple-500" />
+            <Heart size={12} className="fill-blue-500 text-blue-500" />
             by Sophie Plante
           </p>
         </div>

@@ -81,6 +81,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --pocket-blue: #0e3866;
+  --pocket-blue-dark: #0a1f36;
+  --pocket-blue-medium: #536f98;
+  --pocket-blue-soft: #a2bfd7;
+  --pocket-blue-light: #eef5fa;
+
+  --pocket-green: #16a34a;
+  --pocket-purple: #9333ea;
 }
 
 .dark {
