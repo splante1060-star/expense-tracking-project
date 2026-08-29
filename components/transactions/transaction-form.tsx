@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import { transactionSchema } from "@/lib/schema";
-import { createTransaction } from "@/actions/transaction";
+import { createTransaction, updateTransaction } from "@/actions/transaction";
 import useFetch from "@/hooks/use-fetch";
 
 type TransactionFormData = z.input<typeof transactionSchema>;
@@ -27,6 +27,29 @@ type Account = {
 
 type TransactionFormProps = {
   accounts: Account[];
+  transaction?: {
+    id: string;
+    type: "INCOME" | "EXPENSE";
+    amount: string;
+    description: string;
+    date: string;
+    category:
+      | "GROCERIES"
+      | "DINING"
+      | "SHOPPING"
+      | "ENTERTAINMENT"
+      | "TRANSPORTATION"
+      | "TRAVEL"
+      | "HOUSING"
+      | "UTILITIES"
+      | "LOANS"
+      | "INSURANCE"
+      | "INCOME"
+      | "OTHER";
+    accountId: string;
+    isRecurring: boolean;
+    recurringInterval?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+  };
 };
 
 const categories = [
@@ -52,7 +75,10 @@ const getToday = () => {
   return `${year}-${month}-${day}`;
 };
 
-export default function TransactionForm({ accounts }: TransactionFormProps) {
+export default function TransactionForm({
+  accounts,
+  transaction,
+}: TransactionFormProps) {
   const router = useRouter();
 
   const defaultAccount =
@@ -67,14 +93,18 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
-      type: "EXPENSE",
-      amount: "",
-      description: "",
-      date: getToday(),
-      category: "GROCERIES",
-      accountId: defaultAccount?.id ?? "",
-      isRecurring: false,
-      recurringInterval: undefined,
+      type: transaction?.type ?? "EXPENSE",
+      amount: transaction?.amount ?? "",
+      description: transaction?.description ?? "",
+      date: transaction?.date ?? new Date().toISOString().slice(0, 10),
+      category: transaction?.category ?? "GROCERIES",
+      accountId:
+        transaction?.accountId ??
+        accounts.find((account) => account.isDefault)?.id ??
+        accounts[0]?.id ??
+        "",
+      isRecurring: transaction?.isRecurring ?? false,
+      recurringInterval: transaction?.recurringInterval ?? undefined,
     },
   });
 
@@ -88,12 +118,27 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
   const isRecurring = watch("isRecurring");
 
   const onSubmit = async (data: TransactionFormData) => {
-    const result = await createTransactionFn(data);
+    if (transaction) {
+      await updateTransaction({
+        transactionId: transaction.id,
+        type: data.type,
+        amount: data.amount,
+        description: data.description,
+        category: data.category,
+        accountId: data.accountId,
+        isRecurring: data.isRecurring,
+        recurringInterval: data.recurringInterval,
+      });
 
-    if (result?.success) {
-      router.push("/dashboard");
+      router.push("/transactions");
       router.refresh();
+      return;
     }
+
+    await createTransaction(data);
+
+    router.push("/transactions");
+    router.refresh();
   };
 
   return (
@@ -240,10 +285,14 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
           />
 
           <input
-            id="date"
             type="date"
             {...register("date")}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white pr-3.5 pl-10 text-sm text-slate-900 outline-none transition-colors focus:border-(--pocket-blue)"
+            disabled={Boolean(transaction)}
+            className={`w-full rounded-xl border py-2.5 pr-3 pl-10 text-sm outline-none ${
+              transaction
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500"
+                : "border-slate-200 bg-white text-slate-900 focus:border-(--pocket-blue)"
+            }`}
           />
         </div>
 
@@ -258,7 +307,7 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
           htmlFor="description"
           className="mb-1.5 block text-sm font-medium text-slate-700"
         >
-          Description
+          Merchant / Description
           <span className="ml-1 font-normal text-slate-400">Optional</span>
         </label>
 
@@ -346,7 +395,13 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
         >
           {loading && <Loader2 size={16} className="animate-spin" />}
 
-          {loading ? "Adding..." : "Add Transaction"}
+          {loading
+            ? transaction
+              ? "Saving..."
+              : "Adding..."
+            : transaction
+              ? "Save Changes"
+              : "Add Transaction"}
         </button>
       </div>
     </form>

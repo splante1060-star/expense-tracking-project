@@ -27,6 +27,8 @@ export const transactionSchema = z
       "TRAVEL",
       "HOUSING",
       "UTILITIES",
+      "LOANS",
+      "INSURANCE",
       "INCOME",
       "OTHER",
     ]),
