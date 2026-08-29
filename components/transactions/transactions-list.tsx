@@ -16,6 +16,11 @@ type TransactionItem = {
   date: Date;
   createdAt: Date;
   status: string;
+  account: {
+    id: string;
+    name: string;
+    type: "DEBIT" | "CREDIT" | "SAVINGS";
+  };
 };
 
 type TransactionsListProps = {
@@ -136,10 +141,26 @@ export default function TransactionsList({
                       formatCategory(transaction.category)}
                   </p>
 
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    {transaction.status === "COMPLETED"
-                      ? "Completed"
-                      : transaction.status}
+                  <p className="mt-0.5 text-xs text-(--pocket-blue-medium)">
+                    {transaction.account.name}
+
+                    {transaction.status !== "COMPLETED" && (
+                      <>
+                        <span className="mx-1.5">•</span>
+
+                        <span
+                          className={
+                            transaction.status === "PENDING"
+                              ? "text-(--pocket-orange-dark)"
+                              : "text-(--pocket-red-dark)"
+                          }
+                        >
+                          {transaction.status === "PENDING"
+                            ? "Pending"
+                            : "Failed"}
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>

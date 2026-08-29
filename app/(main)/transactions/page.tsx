@@ -26,6 +26,15 @@ export default async function TransactionsPage() {
     where: {
       userId: user.id,
     },
+    include: {
+      account: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
+    },
     orderBy: {
       date: "desc",
     },
@@ -40,6 +49,11 @@ export default async function TransactionsPage() {
     date: transaction.date,
     createdAt: transaction.createdAt,
     status: transaction.status,
+    account: {
+      id: transaction.account.id,
+      name: transaction.account.name,
+      type: transaction.account.type,
+    },
   }));
 
   return (

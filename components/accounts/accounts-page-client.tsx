@@ -211,12 +211,14 @@ export default function AccountsPageClient({
                     </div>
                   </div>
                 </div>
-
                 <p className="mt-6 text-2xl font-bold tracking-tight text-slate-900">
                   {formatCurrency(account.balance)}
                 </p>
-
-                <p className="mt-1 text-xs text-slate-500">Current balance</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {account.type === "CREDIT"
+                    ? "Balance owed"
+                    : "Current balance"}
+                </p>{" "}
               </div>
             ))}
           </div>
