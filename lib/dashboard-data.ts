@@ -108,7 +108,7 @@ export async function getDashboardDetails({
     1,
   );
 
-  const [transactions, bills] = await Promise.all([
+  const [transactions, bills, budgets] = await Promise.all([
     db.transaction.findMany({
       where: {
         userId,
@@ -140,6 +140,15 @@ export async function getDashboardDetails({
         dueDate: true,
         category: true,
         isAutoPay: true,
+      },
+    }),
+
+    db.budget.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        category: true,
+        amount: true,
       },
     }),
   ]);
@@ -178,10 +187,29 @@ export async function getDashboardDetails({
     0,
   );
 
+  const budgetStatus = budgets
+    .map((budget) => {
+      const budgetAmount = budget.amount.toNumber();
+      const spent = spendingByCategory[budget.category] ?? 0;
+
+      const percent =
+        budgetAmount > 0 ? Math.round((spent / budgetAmount) * 100) : 0;
+      return {
+        id: budget.id,
+        category: budget.category,
+        budgetAmount,
+        spent,
+        percent,
+        remaining: Math.max(budgetAmount - spent, 0),
+      };
+    })
+    .sort((a, b) => b.percent - a.percent);
+
   return {
     monthlySpending,
     totalSpent,
     upcomingBills,
     totalBills,
+    budgetStatus,
   };
 }

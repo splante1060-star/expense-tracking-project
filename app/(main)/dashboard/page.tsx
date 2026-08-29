@@ -6,6 +6,7 @@ import DashboardHeader from "@/components/dashboard/dash-header";
 import SummaryCards from "@/components/dashboard/summary-cards";
 import MonthlySpending from "@/components/dashboard/monthly-spending";
 import UpcomingBills from "@/components/dashboard/upcoming-bills";
+import BudgetStatus from "@/components/dashboard/budget-status";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -59,6 +60,7 @@ export default async function DashboardPage({
           totalSpent: 0,
           upcomingBills: [],
           totalBills: 0,
+          budgetStatus: [],
         },
       ];
 
@@ -86,8 +88,15 @@ export default async function DashboardPage({
           totalBills={details.totalBills}
         />
       </div>
-      {/* Budget status */}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <BudgetStatus budgets={details.budgetStatus} />
+      </div>
+
       {/* Savings goals */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p className="text-sm text-slate-400">Savings Goals coming next 👀</p>
+      </div>
       {/* Recent transactions */}
       {/* Pocket noticed */}
     </div>
