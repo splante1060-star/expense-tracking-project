@@ -88,3 +88,100 @@ export async function getDashboardSummary({
     savingsTarget,
   };
 }
+
+export async function getDashboardDetails({
+  userId,
+  selectedMonth,
+}: {
+  userId: string;
+  selectedMonth: Date;
+}) {
+  const monthStart = new Date(
+    selectedMonth.getFullYear(),
+    selectedMonth.getMonth(),
+    1,
+  );
+
+  const monthEnd = new Date(
+    selectedMonth.getFullYear(),
+    selectedMonth.getMonth() + 1,
+    1,
+  );
+
+  const [transactions, bills] = await Promise.all([
+    db.transaction.findMany({
+      where: {
+        userId,
+        type: "EXPENSE",
+        status: "COMPLETED",
+        date: { gte: monthStart, lt: monthEnd },
+      },
+      select: {
+        amount: true,
+        category: true,
+      },
+    }),
+
+    db.bill.findMany({
+      where: {
+        userId,
+        dueDate: {
+          gte: monthStart,
+          lt: monthEnd,
+        },
+      },
+      orderBy: {
+        dueDate: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+        amount: true,
+        dueDate: true,
+        category: true,
+        isAutoPay: true,
+      },
+    }),
+  ]);
+
+  const spendingByCategory = transactions.reduce<Record<string, number>>(
+    (totals, transaction) => {
+      const category = transaction.category;
+
+      totals[category] =
+        (totals[category] ?? 0) + transaction.amount.toNumber();
+
+      return totals;
+    },
+    {},
+  );
+
+  const monthlySpending = Object.entries(spendingByCategory)
+    .map(([category, amount]) => ({
+      category,
+      amount,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const totalSpent = monthlySpending.reduce(
+    (total, item) => total + item.amount,
+    0,
+  );
+
+  const upcomingBills = bills.map((bill) => ({
+    ...bill,
+    amount: bill.amount.toNumber(),
+  }));
+
+  const totalBills = upcomingBills.reduce(
+    (total, bill) => total + bill.amount,
+    0,
+  );
+
+  return {
+    monthlySpending,
+    totalSpent,
+    upcomingBills,
+    totalBills,
+  };
+}

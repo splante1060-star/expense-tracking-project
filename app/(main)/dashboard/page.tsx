@@ -1,9 +1,11 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { checkUser } from "@/lib/checkUser";
-import { getDashboardSummary } from "@/lib/dashboard-data";
+import { getDashboardSummary, getDashboardDetails } from "@/lib/dashboard-data";
 
 import DashboardHeader from "@/components/dashboard/dash-header";
 import SummaryCards from "@/components/dashboard/summary-cards";
+import MonthlySpending from "@/components/dashboard/monthly-spending";
+import UpcomingBills from "@/components/dashboard/upcoming-bills";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -26,18 +28,39 @@ export default async function DashboardPage({
       ? new Date(`${month}-01T12:00:00`)
       : new Date(now.getFullYear(), now.getMonth(), 1);
 
+  const monthLabel = selectedMonth.toLocaleDateString("en-US", {
+    month: "long",
+  });
+
   const firstName = user?.firstName ?? "there";
 
-  const summary = dbUser
-    ? await getDashboardSummary({ userId: dbUser.id, selectedMonth })
-    : {
-        availableToSpend: 0,
-        spentThisMonth: 0,
-        monthlyBudget: 0,
-        upcomingBills: 0,
-        currentSavings: 0,
-        savingsTarget: 0,
-      };
+  const [summary, details] = dbUser
+    ? await Promise.all([
+        getDashboardSummary({
+          userId: dbUser.id,
+          selectedMonth,
+        }),
+        getDashboardDetails({
+          userId: dbUser.id,
+          selectedMonth,
+        }),
+      ])
+    : [
+        {
+          availableToSpend: 0,
+          spentThisMonth: 0,
+          monthlyBudget: 0,
+          upcomingBills: 0,
+          currentSavings: 0,
+          savingsTarget: 0,
+        },
+        {
+          monthlySpending: [],
+          totalSpent: 0,
+          upcomingBills: [],
+          totalBills: 0,
+        },
+      ];
 
   return (
     <div className="space-y-6">
@@ -51,8 +74,18 @@ export default async function DashboardPage({
         currentSavings={summary.currentSavings}
         savingsTarget={summary.savingsTarget}
       />
-      {/* Spending overview */}
-      {/* Upcoming bills */}
+      <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <MonthlySpending
+          spending={details.monthlySpending}
+          totalSpent={details.totalSpent}
+          monthLabel={monthLabel}
+        />
+
+        <UpcomingBills
+          bills={details.upcomingBills}
+          totalBills={details.totalBills}
+        />
+      </div>
       {/* Budget status */}
       {/* Savings goals */}
       {/* Recent transactions */}
