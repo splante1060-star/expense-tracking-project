@@ -108,7 +108,7 @@ export async function getDashboardDetails({
     1,
   );
 
-  const [transactions, bills, budgets] = await Promise.all([
+  const [transactions, bills, budgets, savingsGoals] = await Promise.all([
     db.transaction.findMany({
       where: {
         userId,
@@ -149,6 +149,15 @@ export async function getDashboardDetails({
         id: true,
         category: true,
         amount: true,
+      },
+    }),
+
+    db.savingsGoal.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: "asc",
       },
     }),
   ]);
@@ -205,11 +214,21 @@ export async function getDashboardDetails({
     })
     .sort((a, b) => b.percent - a.percent);
 
+  const savingsGoalDetails = savingsGoals.map((goal) => ({
+    id: goal.id,
+    name: goal.name,
+    targetAmount: goal.targetAmount.toNumber(),
+    currentAmount: goal.currentAmount.toNumber(),
+    targetDate: goal.targetDate,
+    icon: goal.icon,
+  }));
+
   return {
     monthlySpending,
     totalSpent,
     upcomingBills,
     totalBills,
     budgetStatus,
+    savingsGoals: savingsGoalDetails,
   };
 }
