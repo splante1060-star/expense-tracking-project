@@ -21,8 +21,12 @@ export async function getDashboardSummary({
     1,
   );
 
-  const fourteenDaysLater = new Date(monthStart);
-  fourteenDaysLater.setDate(fourteenDaysLater.getDate() + 14);
+  const today = new Date();
+
+  today.setHours(0, 0, 0, 0);
+
+  const fourteenDaysFromToday = new Date(today);
+  fourteenDaysFromToday.setDate(fourteenDaysFromToday.getDate() + 14);
 
   const [expenseResult, budgets, upcomingBills, savingsResult] =
     await Promise.all([
@@ -44,8 +48,8 @@ export async function getDashboardSummary({
         where: {
           userId,
           dueDate: {
-            gte: monthStart,
-            lt: fourteenDaysLater,
+            gte: today,
+            lt: fourteenDaysFromToday,
           },
         },
         _sum: {
@@ -108,6 +112,8 @@ export async function getDashboardDetails({
     1,
   );
 
+  const today = new Date();
+
   const [transactions, bills, budgets, savingsGoals, recentTransactions] =
     await Promise.all([
       db.transaction.findMany({
@@ -127,13 +133,13 @@ export async function getDashboardDetails({
         where: {
           userId,
           dueDate: {
-            gte: monthStart,
-            lt: monthEnd,
+            gte: today,
           },
         },
         orderBy: {
           dueDate: "asc",
         },
+        take: 4,
         select: {
           id: true,
           name: true,

@@ -115,6 +115,7 @@ export default function TransactionForm({
   } = useFetch(createTransaction);
 
   const transactionType = watch("type");
+  const category = watch("category");
   const isRecurring = watch("isRecurring");
 
   const onSubmit = async (data: TransactionFormData) => {
@@ -155,7 +156,13 @@ export default function TransactionForm({
         <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
           <button
             type="button"
-            onClick={() => setValue("type", "EXPENSE")}
+            onClick={() => {
+              setValue("type", "EXPENSE");
+
+              if (category === "INCOME") {
+                setValue("category", "GROCERIES");
+              }
+            }}
             className={`flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all ${
               transactionType === "EXPENSE"
                 ? "bg-white text-(--pocket-blue) shadow-sm"
@@ -168,7 +175,10 @@ export default function TransactionForm({
 
           <button
             type="button"
-            onClick={() => setValue("type", "INCOME")}
+            onClick={() => {
+              setValue("type", "INCOME");
+              setValue("category", "INCOME");
+            }}
             className={`flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all ${
               transactionType === "INCOME"
                 ? "bg-white text-(--pocket-green) shadow-sm"
@@ -381,7 +391,7 @@ export default function TransactionForm({
       <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-5">
         <button
           type="button"
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.back()}
           disabled={loading}
           className="h-10 rounded-full px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-50"
         >

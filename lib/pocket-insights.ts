@@ -8,6 +8,7 @@ export type PocketInsight = {
     | "SAVINGS_PROGRESS";
 
   message: string;
+  highlights?: string[];
   tone: "positive" | "neutral" | "warning";
   priority: number;
 };
@@ -157,20 +158,22 @@ export async function getPocketInsights({
 
     const percent = (spent / budgetAmount) * 100;
     const category = formatCategory(budget.category);
+    const overAmount = formatCurrency(spent - budgetAmount);
+    const percentUsed = `${Math.round(percent)}%`;
 
     if (percent >= 100) {
       insights.push({
         type: "BUDGET_WARNING",
-        message: `You've gone over your ${category.toLowerCase()} budget by ${formatCurrency(
-          spent - budgetAmount,
-        )}.`,
+        message: `You've gone over your ${category.toLowerCase()} budget by ${overAmount}.`,
+        highlights: [category.toLowerCase(), overAmount],
         tone: "warning",
         priority: 100,
       });
     } else if (percent >= 75) {
       insights.push({
         type: "BUDGET_WARNING",
-        message: `You've used ${Math.round(percent)}% of your ${category.toLowerCase()} budget this month.`,
+        message: `You've used ${percentUsed} of your ${category.toLowerCase()} budget this month.`,
+        highlights: [percentUsed, category.toLowerCase()],
         tone: "warning",
         priority: 90,
       });
@@ -186,6 +189,8 @@ export async function getPocketInsights({
 
     const difference = currentAmount - previousAmount;
     const percentChange = Math.abs(difference / previousAmount) * 100;
+    const amountLess = formatCurrency(Math.abs(difference));
+    const amountMore = formatCurrency(difference);
 
     // Ignore tiny changes.
     if (percentChange < 15) continue;
@@ -195,18 +200,16 @@ export async function getPocketInsights({
     if (difference < 0) {
       insights.push({
         type: "SPENDING_TREND",
-        message: `You've spent ${formatCurrency(
-          Math.abs(difference),
-        )} less on ${categoryName} than last month.`,
+        message: `You've spent ${amountLess} less on ${categoryName} than last month.`,
+        highlights: [amountLess, categoryName],
         tone: "positive",
         priority: 65,
       });
     } else {
       insights.push({
         type: "SPENDING_TREND",
-        message: `You've spent ${formatCurrency(
-          difference,
-        )} more on ${categoryName} than last month.`,
+        message: `You've spent ${amountMore} more on ${categoryName} than last month.`,
+        highlights: [amountMore, categoryName],
         tone: "neutral",
         priority: 60,
       });
@@ -220,11 +223,18 @@ export async function getPocketInsights({
       0,
     );
 
+    const billCount = `${bills.length} ${
+      bills.length === 1 ? "bill" : "bills"
+    }`;
+
+    const total = formatCurrency(billTotal);
+
     insights.push({
       type: "UPCOMING_BILLS",
-      message: `${bills.length} ${
-        bills.length === 1 ? "bill is" : "bills are"
-      } due in the next 7 days, totaling ${formatCurrency(billTotal)}.`,
+      message: `${billCount} ${
+        bills.length === 1 ? "is" : "are"
+      } due in the next 7 days, totaling ${total}.`,
+      highlights: [billCount, total],
       tone: "neutral",
       priority: 80,
     });
@@ -238,23 +248,26 @@ export async function getPocketInsights({
     if (targetAmount <= 0) continue;
 
     const percent = (currentAmount / targetAmount) * 100;
+    const progress = `${Math.round(percent)}%`;
 
     if (percent >= 100) {
       insights.push({
         type: "SAVINGS_PROGRESS",
         message: `You've reached your ${goal.name} savings goal!`,
+        highlights: [goal.name],
         tone: "positive",
         priority: 95,
       });
     } else if (percent >= 75) {
       insights.push({
         type: "SAVINGS_PROGRESS",
-        message: `You're ${Math.round(percent)}% of the way to your ${goal.name} goal.`,
+        message: `You're ${progress} of the way to your ${goal.name} goal.`,
+        highlights: [progress, goal.name],
         tone: "positive",
         priority: 70,
       });
     }
   }
 
-  return insights.sort((a, b) => b.priority - a.priority).slice(0, 3);
+  return insights.sort((a, b) => b.priority - a.priority).slice(0, 4);
 }
