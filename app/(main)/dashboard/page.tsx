@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { checkUser } from "@/lib/checkUser";
 import { getDashboardSummary, getDashboardDetails } from "@/lib/dashboard-data";
+import { getPocketInsights } from "@/lib/pocket-insights";
 
 import DashboardHeader from "@/components/dashboard/dash-header";
 import SummaryCards from "@/components/dashboard/summary-cards";
@@ -9,6 +10,7 @@ import UpcomingBills from "@/components/dashboard/upcoming-bills";
 import BudgetStatus from "@/components/dashboard/budget-status";
 import SavingsGoals from "@/components/dashboard/savings-goals";
 import RecentTransactions from "@/components/dashboard/recent-transactions";
+import PocketInsights from "@/components/dashboard/pocket-insights";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -37,13 +39,17 @@ export default async function DashboardPage({
 
   const firstName = user?.firstName ?? "there";
 
-  const [summary, details] = dbUser
+  const [summary, details, insights] = dbUser
     ? await Promise.all([
         getDashboardSummary({
           userId: dbUser.id,
           selectedMonth,
         }),
         getDashboardDetails({
+          userId: dbUser.id,
+          selectedMonth,
+        }),
+        getPocketInsights({
           userId: dbUser.id,
           selectedMonth,
         }),
@@ -66,6 +72,7 @@ export default async function DashboardPage({
           savingsGoals: [],
           recentTransactions: [],
         },
+        [],
       ];
 
   return (
@@ -99,7 +106,7 @@ export default async function DashboardPage({
         <RecentTransactions transactions={details.recentTransactions} />
       </div>
 
-      {/* Pocket noticed */}
+      <PocketInsights insights={insights} />
     </div>
   );
 }
