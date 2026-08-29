@@ -66,3 +66,31 @@ export const budgetSchema = z.object({
       message: "Enter an amount greater than 0",
     }),
 });
+
+export const savingsGoalSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Goal name is required")
+    .max(60, "Keep your goal name under 60 characters"),
+
+  targetAmount: z
+    .string()
+    .min(1, "Target amount is required")
+    .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
+      message: "Enter an amount greater than 0",
+    }),
+
+  targetDate: z.string().optional(),
+
+  icon: z.enum([
+    "GEM",
+    "PALM_TREE",
+    "CAR",
+    "HOUSE",
+    "GRADUATION",
+    "SHOPPING_BAG",
+    "LAPTOP",
+    "HEART",
+    "GIFT",
+  ]),
+});
