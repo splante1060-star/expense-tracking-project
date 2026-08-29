@@ -13,19 +13,20 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  clerkUserId  String        @unique
-  email        String        @unique
-  phoneNumber  String?       @unique
-  name         String?
-  imageUrl     String?
-  transactions Transaction[]
-  accounts     Account[]
-  budgets      Budget[]
-  savingsGoals SavingsGoal[]
-  bills        Bill[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                   String                @id @default(uuid())
+  clerkUserId          String                @unique
+  email                String                @unique
+  phoneNumber          String?               @unique
+  name                 String?
+  imageUrl             String?
+  transactions         Transaction[]
+  accounts             Account[]
+  budgets              Budget[]
+  savingsGoals         SavingsGoal[]
+  savingsContributions SavingsContribution[]
+  bills                Bill[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   @@map("users")
 }
@@ -124,18 +125,40 @@ enum CategoryType {
 }
 
 model SavingsGoal {
-  id            String    @id @default(uuid())
+  id            String                @id @default(uuid())
   name          String
   userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   targetAmount  Decimal
   currentAmount Decimal
   targetDate    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  contributions SavingsContribution[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
 
   @@index([userId])
   @@map("savingsGoals")
+}
+
+model SavingsContribution {
+  id     String   @id @default(uuid())
+  amount Decimal
+  date   DateTime @default(now())
+  note   String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  savingsGoalId String
+  savingsGoal   SavingsGoal @relation(fields: [savingsGoalId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([savingsGoalId])
+  @@index([date])
+  @@map("savingsContributions")
 }
 
 model Bill {
