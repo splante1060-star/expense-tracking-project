@@ -108,59 +108,71 @@ export async function getDashboardDetails({
     1,
   );
 
-  const [transactions, bills, budgets, savingsGoals] = await Promise.all([
-    db.transaction.findMany({
-      where: {
-        userId,
-        type: "EXPENSE",
-        status: "COMPLETED",
-        date: { gte: monthStart, lt: monthEnd },
-      },
-      select: {
-        amount: true,
-        category: true,
-      },
-    }),
-
-    db.bill.findMany({
-      where: {
-        userId,
-        dueDate: {
-          gte: monthStart,
-          lt: monthEnd,
+  const [transactions, bills, budgets, savingsGoals, recentTransactions] =
+    await Promise.all([
+      db.transaction.findMany({
+        where: {
+          userId,
+          type: "EXPENSE",
+          status: "COMPLETED",
+          date: { gte: monthStart, lt: monthEnd },
         },
-      },
-      orderBy: {
-        dueDate: "asc",
-      },
-      select: {
-        id: true,
-        name: true,
-        amount: true,
-        dueDate: true,
-        category: true,
-        isAutoPay: true,
-      },
-    }),
+        select: {
+          amount: true,
+          category: true,
+        },
+      }),
 
-    db.budget.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        category: true,
-        amount: true,
-      },
-    }),
+      db.bill.findMany({
+        where: {
+          userId,
+          dueDate: {
+            gte: monthStart,
+            lt: monthEnd,
+          },
+        },
+        orderBy: {
+          dueDate: "asc",
+        },
+        select: {
+          id: true,
+          name: true,
+          amount: true,
+          dueDate: true,
+          category: true,
+          isAutoPay: true,
+        },
+      }),
 
-    db.savingsGoal.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    }),
-  ]);
+      db.budget.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          category: true,
+          amount: true,
+        },
+      }),
+
+      db.savingsGoal.findMany({
+        where: {
+          userId,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      }),
+
+      db.transaction.findMany({
+        where: {
+          userId,
+          status: "COMPLETED",
+        },
+        orderBy: {
+          date: "desc",
+        },
+        take: 4,
+      }),
+    ]);
 
   const spendingByCategory = transactions.reduce<Record<string, number>>(
     (totals, transaction) => {
@@ -223,6 +235,15 @@ export async function getDashboardDetails({
     icon: goal.icon,
   }));
 
+  const recentTransactionDetails = recentTransactions.map((transaction) => ({
+    id: transaction.id,
+    description: transaction.description,
+    category: transaction.category,
+    type: transaction.type,
+    amount: transaction.amount.toNumber(),
+    date: transaction.date,
+  }));
+
   return {
     monthlySpending,
     totalSpent,
@@ -230,5 +251,6 @@ export async function getDashboardDetails({
     totalBills,
     budgetStatus,
     savingsGoals: savingsGoalDetails,
+    recentTransactions: recentTransactionDetails,
   };
 }

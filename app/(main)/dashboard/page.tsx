@@ -8,6 +8,7 @@ import MonthlySpending from "@/components/dashboard/monthly-spending";
 import UpcomingBills from "@/components/dashboard/upcoming-bills";
 import BudgetStatus from "@/components/dashboard/budget-status";
 import SavingsGoals from "@/components/dashboard/savings-goals";
+import RecentTransactions from "@/components/dashboard/recent-transactions";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -63,6 +64,7 @@ export default async function DashboardPage({
           totalBills: 0,
           budgetStatus: [],
           savingsGoals: [],
+          recentTransactions: [],
         },
       ];
 
@@ -91,12 +93,12 @@ export default async function DashboardPage({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-3">
         <BudgetStatus budgets={details.budgetStatus} />
         <SavingsGoals goals={details.savingsGoals} />
+        <RecentTransactions transactions={details.recentTransactions} />
       </div>
 
-      {/* Recent transactions */}
       {/* Pocket noticed */}
     </div>
   );
