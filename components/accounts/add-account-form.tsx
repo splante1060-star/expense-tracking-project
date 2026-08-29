@@ -7,16 +7,28 @@ import { z } from "zod";
 import { X } from "lucide-react";
 
 import { accountSchema } from "@/lib/schema";
-import { createAccount } from "@/actions/dashboard";
+import { createAccount, updateAccount } from "@/actions/dashboard";
 import useFetch from "@/hooks/use-fetch";
 
 type AccountFormData = z.input<typeof accountSchema>;
 
+type Account = {
+  id: string;
+  name: string;
+  type: AccountFormData["type"];
+  balance: number;
+  isDefault: boolean;
+};
+
 type AddAccountFormProps = {
+  account?: Account | null;
   onClose: () => void;
 };
 
-export default function AddAccountForm({ onClose }: AddAccountFormProps) {
+export default function AddAccountForm({
+  account,
+  onClose,
+}: AddAccountFormProps) {
   const router = useRouter();
 
   const {
@@ -26,16 +38,43 @@ export default function AddAccountForm({ onClose }: AddAccountFormProps) {
   } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
     defaultValues: {
-      name: "",
-      type: "DEBIT",
-      balance: "",
-      isDefault: false,
+      name: account?.name ?? "",
+      type: account?.type ?? "DEBIT",
+      balance: account ? String(account.balance) : "",
+      isDefault: account?.isDefault ?? false,
     },
   });
 
-  const { fn: createAccountFn, loading, error } = useFetch(createAccount);
+  const {
+    fn: createAccountFn,
+    loading: creating,
+    error: createError,
+  } = useFetch(createAccount);
+
+  const {
+    fn: updateAccountFn,
+    loading: updating,
+    error: updateError,
+  } = useFetch(updateAccount);
+
+  const loading = creating || updating;
+  const error = createError || updateError;
 
   const onSubmit = async (data: AccountFormData) => {
+    if (account) {
+      const result = await updateAccountFn({
+        accountId: account.id,
+        ...data,
+      });
+
+      if (result?.success) {
+        router.refresh();
+        onClose();
+      }
+
+      return;
+    }
+
     const result = await createAccountFn(data);
 
     if (result?.success) {
@@ -48,10 +87,14 @@ export default function AddAccountForm({ onClose }: AddAccountFormProps) {
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Add Account</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {account ? "Edit Account" : "Add Account"}
+          </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Add an account to start tracking your money.
+            {account
+              ? "Update the details for this account."
+              : "Add an account to start tracking your money."}
           </p>
         </div>
 
@@ -184,7 +227,13 @@ export default function AddAccountForm({ onClose }: AddAccountFormProps) {
             disabled={loading}
             className="inline-flex h-10 items-center justify-center rounded-full bg-(--pocket-blue) px-5 text-sm font-semibold text-white transition-colors hover:bg-(--pocket-blue-dark) disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Adding..." : "Add Account"}
+            {loading
+              ? account
+                ? "Saving..."
+                : "Adding..."
+              : account
+                ? "Save Changes"
+                : "Add Account"}
           </button>
         </div>
       </form>

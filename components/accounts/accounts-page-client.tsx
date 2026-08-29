@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, WalletCards } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { MoreVertical, Pencil, Plus, Trash2, WalletCards } from "lucide-react";
 import AddAccountForm from "./add-account-form";
+import { deleteAccount } from "@/actions/dashboard";
 
 type Account = {
   id: string;
@@ -37,7 +39,33 @@ const formatAccountType = (type: Account["type"]) => {
 export default function AccountsPageClient({
   accounts,
 }: AccountsPageClientProps) {
+  const router = useRouter();
+
   const [showForm, setShowForm] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async (account: Account) => {
+    const confirmed = window.confirm(`Delete the ${account.name} account?`);
+
+    if (!confirmed) return;
+
+    try {
+      setDeleteError(null);
+
+      await deleteAccount(account.id);
+
+      setOpenMenu(null);
+      router.refresh();
+    } catch (error) {
+      setOpenMenu(null);
+
+      setDeleteError(
+        error instanceof Error ? error.message : "Failed to delete account.",
+      );
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -54,7 +82,10 @@ export default function AccountsPageClient({
 
         <button
           type="button"
-          onClick={() => setShowForm((current) => !current)}
+          onClick={() => {
+            setEditingAccount(null);
+            setShowForm((current) => !current);
+          }}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-blue) px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--pocket-blue-dark)"
         >
           <Plus size={16} />
@@ -62,8 +93,21 @@ export default function AccountsPageClient({
         </button>
       </div>
 
-      {showForm && <AddAccountForm onClose={() => setShowForm(false)} />}
+      {deleteError && (
+        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {deleteError}
+        </div>
+      )}
 
+      {showForm && (
+        <AddAccountForm
+          account={editingAccount}
+          onClose={() => {
+            setShowForm(false);
+            setEditingAccount(null);
+          }}
+        />
+      )}
       {accounts.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-(--pocket-blue-light) text-(--pocket-blue)">
@@ -89,44 +133,94 @@ export default function AccountsPageClient({
           </button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {accounts.map((account) => (
-            <div
-              key={account.id}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-semibold text-slate-900">
-                      {account.name}
-                    </h2>
+        <>
+          {openMenu && (
+            <button
+              type="button"
+              aria-label="Close account menu"
+              onClick={() => setOpenMenu(null)}
+              className="fixed inset-0 z-40 cursor-default"
+            />
+          )}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {accounts.map((account) => (
+              <div
+                key={account.id}
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-semibold text-slate-900">
+                        {account.name}
+                      </h2>
 
-                    {account.isDefault && (
-                      <span className="rounded-full bg-(--pocket-blue-light) px-2 py-0.5 text-[11px] font-semibold text-(--pocket-blue)">
-                        Default
-                      </span>
-                    )}
+                      {account.isDefault && (
+                        <span className="rounded-full bg-(--pocket-blue-light) px-2 py-0.5 text-[11px] font-semibold text-(--pocket-blue)">
+                          Default
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      {formatAccountType(account.type)}
+                    </p>
                   </div>
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    {formatAccountType(account.type)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenMenu(
+                            openMenu === account.id ? null : account.id,
+                          )
+                        }
+                        aria-label="Account options"
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+
+                      {openMenu === account.id && (
+                        <div className="absolute right-0 top-9 z-50 w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingAccount(account);
+                              setShowForm(true);
+                              setOpenMenu(null);
+                              setDeleteError(null);
+                            }}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <Pencil size={15} />
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(account)}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 size={15} />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(--pocket-blue-light) text-(--pocket-blue)">
-                  <WalletCards size={19} strokeWidth={1.8} />
-                </div>
+                <p className="mt-6 text-2xl font-bold tracking-tight text-slate-900">
+                  {formatCurrency(account.balance)}
+                </p>
+
+                <p className="mt-1 text-xs text-slate-500">Current balance</p>
               </div>
-
-              <p className="mt-6 text-2xl font-bold tracking-tight text-slate-900">
-                {formatCurrency(account.balance)}
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">Current balance</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
