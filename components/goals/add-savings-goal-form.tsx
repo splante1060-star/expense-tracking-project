@@ -7,17 +7,28 @@ import { z } from "zod";
 import { CalendarDays, X } from "lucide-react";
 
 import { savingsGoalSchema } from "@/lib/schema";
-import { createSavingsGoal } from "@/actions/savings-goal";
+import { createSavingsGoal, updateSavingsGoal } from "@/actions/savings-goal";
 import { goalIcons } from "@/lib/goal-icons";
 import useFetch from "@/hooks/use-fetch";
 
 type SavingsGoalFormData = z.input<typeof savingsGoalSchema>;
 
+type SavingsGoal = {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: Date | null;
+  icon: SavingsGoalFormData["icon"];
+};
+
 type AddSavingsGoalFormProps = {
+  goal?: SavingsGoal | null;
   onClose: () => void;
 };
 
 export default function AddSavingsGoalForm({
+  goal,
   onClose,
 }: AddSavingsGoalFormProps) {
   const router = useRouter();
@@ -31,10 +42,12 @@ export default function AddSavingsGoalForm({
   } = useForm<SavingsGoalFormData>({
     resolver: zodResolver(savingsGoalSchema),
     defaultValues: {
-      name: "",
-      targetAmount: "",
-      targetDate: "",
-      icon: "GEM",
+      name: goal?.name ?? "",
+      targetAmount: goal ? String(goal.targetAmount) : "",
+      targetDate: goal?.targetDate
+        ? new Date(goal.targetDate).toISOString().slice(0, 10)
+        : "",
+      icon: goal?.icon ?? "GEM",
     },
   });
 
@@ -42,11 +55,37 @@ export default function AddSavingsGoalForm({
 
   const {
     fn: createSavingsGoalFn,
-    loading,
-    error,
+    loading: creating,
+    error: createError,
   } = useFetch(createSavingsGoal);
 
+  const {
+    fn: updateSavingsGoalFn,
+    loading: updating,
+    error: updateError,
+  } = useFetch(updateSavingsGoal);
+
+  const loading = creating || updating;
+  const error = createError || updateError;
+
   const onSubmit = async (data: SavingsGoalFormData) => {
+    if (goal) {
+      const result = await updateSavingsGoalFn({
+        goalId: goal.id,
+        name: data.name,
+        targetAmount: data.targetAmount,
+        targetDate: data.targetDate,
+        icon: data.icon,
+      });
+
+      if (result?.success) {
+        router.refresh();
+        onClose();
+      }
+
+      return;
+    }
+
     const result = await createSavingsGoalFn(data);
 
     if (result?.success) {
@@ -60,11 +99,13 @@ export default function AddSavingsGoalForm({
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">
-            Add Savings Goal
+            {goal ? "Edit Savings Goal" : "Add Savings Goal"}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Give your savings something to work toward.
+            {goal
+              ? "Update the details for this savings goal."
+              : "Give your savings something to work toward."}
           </p>
         </div>
 
@@ -236,7 +277,13 @@ export default function AddSavingsGoalForm({
             disabled={loading}
             className="inline-flex h-10 items-center justify-center rounded-full bg-(--pocket-blue) px-5 text-sm font-semibold text-white transition-colors hover:bg-(--pocket-blue-dark) disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Adding..." : "Add Goal"}
+            {loading
+              ? goal
+                ? "Saving..."
+                : "Adding..."
+              : goal
+                ? "Save Changes"
+                : "Add Goal"}
           </button>
         </div>
       </form>
