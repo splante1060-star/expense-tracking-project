@@ -58,6 +58,8 @@ export const budgetSchema = z.object({
     "TRAVEL",
     "HOUSING",
     "UTILITIES",
+    "LOANS",
+    "INSURANCE",
     "OTHER",
   ]),
 

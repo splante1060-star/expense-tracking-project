@@ -7,7 +7,7 @@ import { z } from "zod";
 import { X } from "lucide-react";
 
 import { budgetSchema } from "@/lib/schema";
-import { createBudget } from "@/actions/budget";
+import { createBudget, updateBudget } from "@/actions/budget";
 import useFetch from "@/hooks/use-fetch";
 
 type BudgetFormData = z.input<typeof budgetSchema>;
@@ -20,6 +20,7 @@ type Budget = {
 
 type AddBudgetFormProps = {
   budgets: Budget[];
+  budget?: Budget | null;
   onClose: () => void;
 };
 
@@ -32,17 +33,23 @@ const categories = [
   { value: "TRAVEL", label: "Travel" },
   { value: "HOUSING", label: "Housing" },
   { value: "UTILITIES", label: "Utilities" },
+  { value: "LOANS", label: "Loans" },
+  { value: "INSURANCE", label: "Insurance" },
   { value: "OTHER", label: "Other" },
 ] as const;
 
 export default function AddBudgetForm({
   budgets,
+  budget,
   onClose,
 }: AddBudgetFormProps) {
   const router = useRouter();
 
-  const usedCategories = new Set(budgets.map((budget) => budget.category));
-
+  const usedCategories = new Set(
+    budgets
+      .filter((item) => item.id !== budget?.id)
+      .map((item) => item.category),
+  );
   const availableCategories = categories.filter(
     (category) => !usedCategories.has(category.value),
   );
@@ -54,14 +61,45 @@ export default function AddBudgetForm({
   } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema),
     defaultValues: {
-      category: availableCategories[0]?.value ?? "GROCERIES",
-      amount: "",
+      category:
+        (budget?.category as BudgetFormData["category"]) ??
+        availableCategories[0]?.value ??
+        "GROCERIES",
+      amount: budget ? String(budget.amount) : "",
     },
   });
 
-  const { fn: createBudgetFn, loading, error } = useFetch(createBudget);
+  const {
+    fn: createBudgetFn,
+    loading: creating,
+    error: createError,
+  } = useFetch(createBudget);
+
+  const {
+    fn: updateBudgetFn,
+    loading: updating,
+    error: updateError,
+  } = useFetch(updateBudget);
+
+  const loading = creating || updating;
+  const error = createError || updateError;
 
   const onSubmit = async (data: BudgetFormData) => {
+    if (budget) {
+      const result = await updateBudgetFn({
+        budgetId: budget.id,
+        category: data.category,
+        amount: data.amount,
+      });
+
+      if (result?.success) {
+        router.refresh();
+        onClose();
+      }
+
+      return;
+    }
+
     const result = await createBudgetFn(data);
 
     if (result?.success) {
@@ -74,10 +112,14 @@ export default function AddBudgetForm({
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Add Budget</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {budget ? "Edit Budget" : "Add Budget"}
+          </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Set a monthly spending limit for a category.
+            {budget
+              ? "Update the monthly spending limit for this category."
+              : "Set a monthly spending limit for a category."}
           </p>
         </div>
 
@@ -185,7 +227,13 @@ export default function AddBudgetForm({
               disabled={loading}
               className="inline-flex h-10 items-center justify-center rounded-full bg-(--pocket-blue) px-5 text-sm font-semibold text-white transition-colors hover:bg-(--pocket-blue-dark) disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Adding..." : "Add Budget"}
+              {loading
+                ? budget
+                  ? "Saving..."
+                  : "Adding..."
+                : budget
+                  ? "Save Changes"
+                  : "Add Budget"}
             </button>
           </div>
         </form>

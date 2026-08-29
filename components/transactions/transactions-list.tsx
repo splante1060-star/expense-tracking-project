@@ -100,6 +100,14 @@ export default function TransactionsList({
       </div>
 
       <div className="divide-y divide-slate-100">
+        {openMenu && (
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setOpenMenu(null)}
+            className="fixed inset-0 z-40 cursor-default"
+          />
+        )}
         {transactions.map((transaction) => {
           const isIncome = transaction.type === "INCOME";
 
