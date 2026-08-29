@@ -45,3 +45,24 @@ export const transactionSchema = z
       });
     }
   });
+
+export const budgetSchema = z.object({
+  category: z.enum([
+    "GROCERIES",
+    "DINING",
+    "SHOPPING",
+    "ENTERTAINMENT",
+    "TRANSPORTATION",
+    "TRAVEL",
+    "HOUSING",
+    "UTILITIES",
+    "OTHER",
+  ]),
+
+  amount: z
+    .string()
+    .min(1, "Budget amount is required")
+    .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
+      message: "Enter an amount greater than 0",
+    }),
+});
