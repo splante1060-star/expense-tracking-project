@@ -41,7 +41,7 @@ export default function RecentTransactions({
 
         <Link
           href="/transactions"
-          className="text-xs font-semibold text-(--pocket-blue-medium) transition-colors hover:text-(--pocket-blue)"
+          className="text-xs font-semibold text-(--pocket-blue) transition-opacity hover:opacity-70"
         >
           View all →
         </Link>

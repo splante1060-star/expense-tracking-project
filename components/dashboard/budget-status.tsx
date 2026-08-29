@@ -31,23 +31,23 @@ const getStatus = (percent: number) => {
   if (percent >= 100) {
     return {
       label: "Over budget",
-      textClass: "text-red-600",
-      barClass: "bg-red-500",
+      textClass: "text-(--pocket-red-dark)",
+      barClass: "bg-(--pocket-red)",
     };
   }
 
   if (percent >= 75) {
     return {
       label: "Getting close",
-      textClass: "text-orange-600",
-      barClass: "bg-orange-400",
+      textClass: "text-(--pocket-orange-dark)",
+      barClass: "bg-(--pocket-orange)",
     };
   }
 
   return {
     label: "On track",
-    textClass: "text-(--pocket-green)",
-    barClass: "bg-(--pocket-green)",
+    textClass: "text-(--pocket-blue)",
+    barClass: "bg-(--pocket-blue)",
   };
 };
 

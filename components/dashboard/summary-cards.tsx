@@ -54,7 +54,7 @@ export default function SummaryCards({
             </p>
           </div>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(emerald-50) text-emerald-600">
             <Wallet size={19} strokeWidth={1.8} />
           </div>
         </div>
@@ -75,7 +75,7 @@ export default function SummaryCards({
             </p>
           </div>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(--pocket-blue-light) text-(--pocket-blue)">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(--pocket-purple-light) text-(--pocket-purple)">
             <ChartNoAxesCombined size={19} strokeWidth={1.8} />
           </div>
         </div>
@@ -93,7 +93,7 @@ export default function SummaryCards({
 
           <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-(--pocket-blue)"
+              className="h-full rounded-full bg-(--pocket-purple)"
               style={{ width: `${budgetPercent}%` }}
             />
           </div>
@@ -111,7 +111,8 @@ export default function SummaryCards({
             </p>
           </div>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(--pocket-orange-light) text-(--pocket-orange)">
+            {" "}
             <ReceiptText size={19} strokeWidth={1.8} />
           </div>
         </div>
@@ -132,7 +133,8 @@ export default function SummaryCards({
             </p>
           </div>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(--pocket-green-light) text-(--pocket-green)">
+            {" "}
             <PiggyBank size={19} strokeWidth={1.8} />
           </div>
         </div>

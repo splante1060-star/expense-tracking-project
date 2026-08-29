@@ -43,7 +43,7 @@ export default function SavingsGoals({ goals }: SavingsGoalsProps) {
 
         <Link
           href="/goals"
-          className="text-xs font-semibold text-(--pocket-blue-medium) transition-colors hover:text-(--pocket-blue)"
+          className="text-xs font-semibold text-(--pocket-green-dark) transition-opacity hover:opacity-70"
         >
           View all →
         </Link>
@@ -76,7 +76,7 @@ export default function SavingsGoals({ goals }: SavingsGoalsProps) {
             return (
               <div key={goal.id} className="flex gap-3 py-4 first:pt-1">
                 {/* ICON */}
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-(--pocket-blue-light) text-(--pocket-blue)">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-(--pocket-green-light) text-(--pocket-green)">
                   <GoalIcon name={goal.icon} size={22} />
                 </div>
 
@@ -95,7 +95,7 @@ export default function SavingsGoals({ goals }: SavingsGoalsProps) {
                   {/* PROGRESS */}
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-(--pocket-blue) transition-all"
+                      className="h-full rounded-full bg-(--pocket-green) transition-all"
                       style={{
                         width: `${percent}%`,
                       }}
@@ -121,7 +121,7 @@ export default function SavingsGoals({ goals }: SavingsGoalsProps) {
       {/* NEW GOAL */}
       <Link
         href="/goals"
-        className="mt-2 flex h-10 items-center justify-center rounded-xl bg-(--pocket-blue-light) text-sm font-semibold text-(--pocket-blue) transition-colors hover:bg-(--pocket-blue-soft)"
+        className="mt-2 flex h-10 items-center justify-center rounded-xl bg-(--pocket-green-light) text-sm font-semibold text-(--pocket-green-dark) transition-colors hover:bg-(--pocket-green) hover:text-white"
       >
         + New Goal
       </Link>

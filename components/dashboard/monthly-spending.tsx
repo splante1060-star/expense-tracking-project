@@ -25,16 +25,17 @@ const formatCategory = (category: string) =>
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const categoryColors: Record<string, string> = {
-  GROCERIES: "#0e3866",
-  DINING: "#9333ea",
-  SHOPPING: "#16a34a",
-  ENTERTAINMENT: "#f97316",
-  TRANSPORTATION: "#3b82f6",
-  TRAVEL: "#8b5cf6",
-  HOUSING: "#14b8a6",
-  UTILITIES: "#f59e0b",
-  INCOME: "#22c55e",
-  OTHER: "#94a3b8",
+  GROCERIES: "#0e3866", // Pocket blue
+  DINING: "#7c6fb0", // muted purple
+  SHOPPING: "#5f9f87", // soft green
+  ENTERTAINMENT: "#d98568", // muted coral
+  TRANSPORTATION: "#5f87b2", // soft blue
+  TRAVEL: "#9b7bb5", // dusty lavender
+  HOUSING: "#4f8f91", // muted teal
+  UTILITIES: "#d6a557", // warm gold
+  LOANS: "#9b7a70", // warm taupe
+  INSURANCE: "#7189a6", // slate blue
+  OTHER: "#94a3b8", // slate
 };
 
 export default function MonthlySpending({
@@ -149,7 +150,7 @@ export default function MonthlySpending({
           <div className="mt-5 border-t border-slate-100 pt-4">
             <Link
               href="/transactions"
-              className="text-sm font-medium text-(--pocket-blue) transition-opacity hover:opacity-70"
+              className="text-sm font-medium text-(--pocket-purple) transition-opacity hover:opacity-70"
             >
               View all spending →
             </Link>
