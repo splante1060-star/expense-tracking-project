@@ -98,3 +98,48 @@ export const savingsGoalSchema = z.object({
     "GIFT",
   ]),
 });
+
+export const billSchema = z
+  .object({
+    name: z.string().trim().min(1, "Bill name is required"),
+
+    amount: z
+      .string()
+      .min(1, "Bill amount is required")
+      .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
+        message: "Enter an amount greater than 0",
+      }),
+
+    dueDate: z.string().min(1, "Due date is required"),
+
+    category: z.enum([
+      "GROCERIES",
+      "DINING",
+      "SHOPPING",
+      "ENTERTAINMENT",
+      "TRANSPORTATION",
+      "TRAVEL",
+      "HOUSING",
+      "UTILITIES",
+      "LOANS",
+      "INSURANCE",
+      "OTHER",
+    ]),
+
+    accountId: z.string().optional(),
+
+    isRecurring: z.boolean(),
+
+    recurringInterval: z
+      .enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"])
+      .nullable()
+      .optional(),
+
+    isAutoPay: z.boolean(),
+  })
+  .refine((data) => !data.isRecurring || Boolean(data.recurringInterval), {
+    message: "Choose how often this bill repeats",
+    path: ["recurringInterval"],
+  });
+
+export type BillFormData = z.input<typeof billSchema>;
