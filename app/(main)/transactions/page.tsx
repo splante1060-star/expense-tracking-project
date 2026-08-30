@@ -35,9 +35,7 @@ export default async function TransactionsPage() {
         },
       },
     },
-    orderBy: {
-      date: "desc",
-    },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
 
   const serializedTransactions = transactions.map((transaction) => ({
