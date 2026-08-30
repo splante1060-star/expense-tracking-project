@@ -14,6 +14,7 @@ type UpcomingBill = {
 
 type UpcomingBillsProps = {
   bills: UpcomingBill[];
+  totalBills: number;
 };
 
 function formatCurrency(amount: number) {
@@ -42,7 +43,10 @@ function getDaysUntil(date: Date | string) {
   );
 }
 
-export default function UpcomingBills({ bills }: UpcomingBillsProps) {
+export default function UpcomingBills({
+  bills,
+  totalBills,
+}: UpcomingBillsProps) {
   const total = bills.reduce((sum, bill) => sum + bill.amount, 0);
 
   return (
