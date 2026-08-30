@@ -19,8 +19,9 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
+import ReportExport from "./report-export";
 
-type Summary = {
+export type Summary = {
   income: number;
   spending: number;
   netCashFlow: number;
@@ -37,14 +38,14 @@ type Summary = {
   averageDailySpendChange: number;
 };
 
-type SpendingComparisonItem = {
+export type SpendingComparisonItem = {
   category: string;
   current: number;
   previous: number;
   change: number;
 };
 
-type BudgetPerformanceItem = {
+export type BudgetPerformanceItem = {
   id: string;
   category: string;
   budgetAmount: number;
@@ -55,7 +56,7 @@ type BudgetPerformanceItem = {
   change: number;
 };
 
-type SavingsProgressItem = {
+export type SavingsProgressItem = {
   id: string;
   name: string;
   targetAmount: number;
@@ -65,7 +66,7 @@ type SavingsProgressItem = {
   icon: string;
 };
 
-type TopSpendingItem = {
+export type TopSpendingItem = {
   id: string;
   description: string | null;
   category: string;
@@ -81,6 +82,7 @@ type MonthlyTrendItem = {
 };
 
 type ReportsPageClientProps = {
+  userName: string;
   selectedMonth: string;
   summary: Summary;
   spendingComparison: SpendingComparisonItem[];
@@ -148,6 +150,7 @@ const formatChange = (current: number, previous: number, change: number) => {
 };
 
 export default function ReportsPageClient({
+  userName,
   selectedMonth,
   summary,
   spendingComparison,
@@ -244,13 +247,16 @@ export default function ReportsPageClient({
           </p>
         </div>
 
-        <button
-          type="button"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
-        >
-          <Download size={16} />
-          Export
-        </button>
+        <ReportExport
+          userName={userName}
+          selectedMonth={selectedMonth}
+          selectedMonthLabel={monthLabel}
+          summary={summary}
+          spendingComparison={spendingComparison}
+          budgetPerformance={budgetPerformance}
+          savingsProgress={savingsProgress}
+          topSpending={topSpending}
+        />
       </div>
 
       {/* MONTH CONTROLS */}

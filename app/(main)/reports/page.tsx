@@ -295,6 +295,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
   return (
     <ReportsPageClient
+      userName={user.name ?? "Pocket User"}
       selectedMonth={selectedMonth}
       summary={{
         income: currentTotals.income,
