@@ -20,19 +20,51 @@ export default async function BudgetPage() {
     redirect("/dashboard");
   }
 
-  const budgets = await db.budget.findMany({
-    where: {
-      userId: user.id,
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
+  const now = new Date();
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const [budgets, spendingByCategory] = await Promise.all([
+    db.budget.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+
+    db.transaction.groupBy({
+      by: ["category"],
+      where: {
+        userId: user.id,
+        type: "EXPENSE",
+        status: "COMPLETED",
+        date: {
+          gte: monthStart,
+          lt: monthEnd,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    }),
+  ]);
+
+  const spendingMap = new Map(
+    spendingByCategory.map((item) => [
+      item.category,
+      item._sum.amount?.toNumber() ?? 0,
+    ]),
+  );
 
   const serializedBudgets = budgets.map((budget) => ({
     id: budget.id,
     category: budget.category,
     amount: budget.amount.toNumber(),
+    spent: spendingMap.get(budget.category) ?? 0,
   }));
 
   return <BudgetPageClient budgets={serializedBudgets} />;

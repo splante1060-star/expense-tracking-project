@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Pencil, PiggyBank, Plus, Trash2 } from "lucide-react";
+import {
+  Check,
+  MoreVertical,
+  Pencil,
+  PiggyBank,
+  Plus,
+  Trash2,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { deleteBudget } from "@/actions/budget";
 import { categoryIconMap } from "@/lib/category-icons";
 import AddBudgetForm from "./add-budget-form";
@@ -11,6 +20,7 @@ type Budget = {
   id: string;
   category: string;
   amount: number;
+  spent: number;
 };
 
 type BudgetPageClientProps = {
@@ -29,6 +39,33 @@ const formatCategory = (category: string) =>
     .toLowerCase()
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const getStatus = (percent: number) => {
+  if (percent > 100) {
+    return {
+      label: "Over budget",
+      icon: X,
+      iconClass: "bg-(--pocket-red-light) text-(--pocket-red-dark)",
+      barClass: "bg-(--pocket-red)",
+    };
+  }
+
+  if (percent >= 75) {
+    return {
+      label: "Getting close",
+      icon: TriangleAlert,
+      iconClass: "bg-(--pocket-orange-light) text-(--pocket-orange-dark)",
+      barClass: "bg-(--pocket-orange)",
+    };
+  }
+
+  return {
+    label: "On track",
+    icon: Check,
+    iconClass: "bg-(--pocket-green-light) text-(--pocket-green-dark)",
+    barClass: "bg-(--pocket-green)",
+  };
+};
 
 export default function BudgetPageClient({ budgets }: BudgetPageClientProps) {
   const [showForm, setShowForm] = useState(false);
@@ -151,6 +188,16 @@ export default function BudgetPageClient({ budgets }: BudgetPageClientProps) {
               const CategoryIcon =
                 categoryIconMap[budget.category] ?? PiggyBank;
 
+              const percent =
+                budget.amount > 0
+                  ? Math.round((budget.spent / budget.amount) * 100)
+                  : 0;
+
+              const remaining = budget.amount - budget.spent;
+              const status = getStatus(percent);
+              const StatusIcon = status.icon;
+              const barWidth = Math.min(percent, 100);
+
               return (
                 <div
                   key={budget.id}
@@ -215,9 +262,49 @@ export default function BudgetPageClient({ budgets }: BudgetPageClientProps) {
                     </div>
                   </div>
 
-                  <p className="mt-5 text-2xl font-bold tracking-tight text-slate-900">
-                    {formatCurrency(budget.amount)}
-                  </p>
+                  <div className="mt-5">
+                    <p className="text-2xl font-bold tracking-tight text-slate-900">
+                      {formatCurrency(budget.amount)}
+                    </p>
+
+                    <div className="mt-4 flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3 text-xs">
+                          <span className="text-slate-500">
+                            {formatCurrency(budget.spent)} spent
+                          </span>
+
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-slate-500">
+                              {formatCurrency(Math.abs(remaining))}{" "}
+                              {remaining >= 0 ? "remaining" : "over"}
+                            </span>
+
+                            <span className="w-8 text-right font-semibold text-slate-700">
+                              {percent}%
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className={`h-full rounded-full transition-all ${status.barClass}`}
+                            style={{
+                              width: `${barWidth}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div
+                        title={status.label}
+                        aria-label={status.label}
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${status.iconClass}`}
+                      >
+                        <StatusIcon size={14} strokeWidth={2.4} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               );
             })}
