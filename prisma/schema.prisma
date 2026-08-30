@@ -32,17 +32,18 @@ model User {
 }
 
 model Account {
-  id           String        @id @default(uuid())
-  name         String
-  type         AccountType
-  balance      Decimal       @default(0)
-  isDefault    Boolean       @default(false)
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  bills        Bill[]
+  id                   String                @id @default(uuid())
+  name                 String
+  type                 AccountType
+  balance              Decimal               @default(0)
+  isDefault            Boolean               @default(false)
+  userId               String
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions         Transaction[]
+  bills                Bill[]
+  savingsContributions SavingsContribution[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   @@index([userId])
   @@map("accounts")
@@ -145,22 +146,22 @@ model SavingsGoal {
 }
 
 model SavingsContribution {
-  id     String   @id @default(uuid())
-  amount Decimal
-  date   DateTime @default(now())
-  note   String?
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id            String      @id @default(uuid())
+  amount        Decimal
+  date          DateTime    @default(now())
+  note          String?
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   savingsGoalId String
   savingsGoal   SavingsGoal @relation(fields: [savingsGoalId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  accountId     String?
+  account       Account?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   @@index([userId])
   @@index([savingsGoalId])
+  @@index([accountId])
   @@index([date])
   @@map("savingsContributions")
 }

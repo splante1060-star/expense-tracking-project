@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { CalendarDays, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { deleteSavingsGoal } from "@/actions/savings-goal";
+import type { GoalIconName } from "@/lib/goal-icons";
 import { useRouter } from "next/navigation";
 import AddSavingsGoalForm from "./add-savings-goal-form";
+import AddFundsForm from "./add-funds-form";
 import GoalIcon from "./goal-icon";
 
 type SavingsGoal = {
@@ -13,20 +15,19 @@ type SavingsGoal = {
   targetAmount: number;
   currentAmount: number;
   targetDate: Date | null;
-  icon:
-    | "GEM"
-    | "PALM_TREE"
-    | "CAR"
-    | "HOUSE"
-    | "GRADUATION"
-    | "SHOPPING_BAG"
-    | "LAPTOP"
-    | "HEART"
-    | "GIFT";
+  icon: GoalIconName;
+};
+
+type Account = {
+  id: string;
+  name: string;
+  type: "DEBIT" | "SAVINGS";
+  balance: number;
 };
 
 type GoalsPageClientProps = {
   goals: SavingsGoal[];
+  accounts: Account[];
 };
 
 const formatCurrency = (value: number) =>
@@ -36,12 +37,16 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
+export default function GoalsPageClient({
+  goals,
+  accounts,
+}: GoalsPageClientProps) {
   const router = useRouter();
 
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [fundingGoalId, setFundingGoalId] = useState<string | null>(null);
 
   const totalSaved = goals.reduce(
     (total, goal) => total + goal.currentAmount,
@@ -87,9 +92,10 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
           type="button"
           onClick={() => {
             setEditingGoal(null);
+            setFundingGoalId(null);
             setShowForm((current) => !current);
           }}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-blue) px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--pocket-blue-dark)"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-green) px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--pocket-green-dark)"
         >
           <Plus size={16} />
           Add Goal
@@ -122,7 +128,7 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
             </p>
           </div>
 
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-(--pocket-blue-light) text-(--pocket-blue)">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-(--pocket-green-light) text-(--pocket-green)">
             <GoalIcon name="GEM" size={21} />
           </div>
         </div>
@@ -139,7 +145,7 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
 
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-(--pocket-blue) transition-all"
+                className="h-full rounded-full bg-(--pocket-green) transition-all"
                 style={{
                   width: `${overallPercent}%`,
                 }}
@@ -152,7 +158,7 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
       {/* GOALS */}
       {goals.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-(--pocket-blue)">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-(--pocket-green)">
             <GoalIcon name="GEM" size={21} />
           </div>
 
@@ -168,7 +174,7 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-blue) px-5 text-sm font-semibold text-white transition-colors hover:bg-(--pocket-blue-dark)"
+            className="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-green) px-5 text-sm font-semibold text-white transition-colors hover:bg-(--pocket-green-dark)"
           >
             <Plus size={16} />
             Create Your First Goal
@@ -215,7 +221,7 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-(--pocket-blue-light) text-(--pocket-blue)">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-(--pocket-green-light) text-(--pocket-green)">
                         <GoalIcon name={goal.icon} size={20} />
                       </div>
 
@@ -237,6 +243,7 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
                               type="button"
                               onClick={() => {
                                 setEditingGoal(goal);
+                                setFundingGoalId(null);
                                 setShowForm(true);
                                 setOpenMenu(null);
                               }}
@@ -262,7 +269,7 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
 
                   <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-(--pocket-blue)"
+                      className="h-full rounded-full bg-(--pocket-green)"
                       style={{
                         width: `${percent}%`,
                       }}
@@ -294,6 +301,38 @@ export default function GoalsPageClient({ goals }: GoalsPageClientProps) {
                       </div>
                     )}
                   </div>
+                  <div className="mt-4">
+                    {fundingGoalId === goal.id ? (
+                      <div className="h-1 rounded-full bg-(--pocket-green)" />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setFundingGoalId(goal.id)}
+                        disabled={accounts.length === 0}
+                        className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-(--pocket-green-light) text-sm font-semibold text-(--pocket-green-dark) transition-colors hover:bg-(--pocket-green) hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Plus size={15} />
+                        Add Funds
+                      </button>
+                    )}
+
+                    {accounts.length === 0 && (
+                      <p className="mt-2 text-center text-xs text-slate-400">
+                        Add a checking or savings account first.
+                      </p>
+                    )}
+                  </div>
+
+                  {fundingGoalId === goal.id && (
+                    <div className="mt-4">
+                      <AddFundsForm
+                        goalId={goal.id}
+                        goalName={goal.name}
+                        accounts={accounts}
+                        onClose={() => setFundingGoalId(null)}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}

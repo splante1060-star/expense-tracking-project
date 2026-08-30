@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import GoalsPageClient from "@/components/goals/goals-page-client";
+import type { GoalIconName } from "@/lib/goal-icons";
 
 export default async function GoalsPage() {
   const { userId } = await auth();
@@ -20,14 +21,26 @@ export default async function GoalsPage() {
     redirect("/dashboard");
   }
 
-  const goals = await db.savingsGoal.findMany({
-    where: {
-      userId: user.id,
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
+  const [goals, accounts] = await Promise.all([
+    db.savingsGoal.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+
+    db.account.findMany({
+      where: {
+        userId: user.id,
+        type: {
+          not: "CREDIT",
+        },
+      },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    }),
+  ]);
 
   const serializedGoals = goals.map((goal) => ({
     id: goal.id,
@@ -35,8 +48,17 @@ export default async function GoalsPage() {
     targetAmount: goal.targetAmount.toNumber(),
     currentAmount: goal.currentAmount.toNumber(),
     targetDate: goal.targetDate,
-    icon: goal.icon,
+    icon: goal.icon as GoalIconName,
   }));
 
-  return <GoalsPageClient goals={serializedGoals} />;
+  const serializedAccounts = accounts.map((account) => ({
+    id: account.id,
+    name: account.name,
+    type: account.type as "DEBIT" | "SAVINGS",
+    balance: account.balance.toNumber(),
+  }));
+
+  return (
+    <GoalsPageClient goals={serializedGoals} accounts={serializedAccounts} />
+  );
 }
