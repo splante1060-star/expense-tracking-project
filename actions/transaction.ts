@@ -256,23 +256,69 @@ export async function updateTransaction(data: UpdateTransactionData) {
         );
       }
 
-      await tx.recurringTransaction.update({
-        where: {
-          id: existingTransaction.recurringTransaction.id,
-        },
-        data: {
-          type: data.type,
-          amount,
-          description: data.description || null,
-          category: data.category,
-          accountId: data.accountId,
-          interval: data.recurringInterval,
-          nextRecurringDate: getNextRecurringDate(
-            transactionDate,
-            data.recurringInterval,
-          ),
-        },
-      });
+      const oldSeries = existingTransaction.recurringTransaction;
+
+      const recurrenceChanged =
+        oldSeries.interval !== data.recurringInterval ||
+        oldSeries.accountId !== data.accountId ||
+        oldSeries.type !== data.type ||
+        oldSeries.amount.toNumber() !== amount ||
+        oldSeries.description !== (data.description || null) ||
+        oldSeries.category !== data.category;
+
+      if (recurrenceChanged) {
+        await tx.recurringTransaction.update({
+          where: {
+            id: oldSeries.id,
+          },
+          data: {
+            isActive: false,
+          },
+        });
+
+        const newSeries = await tx.recurringTransaction.create({
+          data: {
+            type: data.type,
+            amount,
+            description: data.description || null,
+            category: data.category,
+            interval: data.recurringInterval,
+            nextRecurringDate: getNextRecurringDate(
+              transactionDate,
+              data.recurringInterval,
+            ),
+            userId: existingTransaction.userId,
+            accountId: data.accountId,
+          },
+        });
+
+        await tx.transaction.update({
+          where: {
+            id: existingTransaction.id,
+          },
+          data: {
+            recurringTransactionId: newSeries.id,
+          },
+        });
+      }
+
+      // await tx.recurringTransaction.update({
+      //   where: {
+      //     id: existingTransaction.recurringTransaction.id,
+      //   },
+      //   data: {
+      //     type: data.type,
+      //     amount,
+      //     description: data.description || null,
+      //     category: data.category,
+      //     accountId: data.accountId,
+      //     interval: data.recurringInterval,
+      //     nextRecurringDate: getNextRecurringDate(
+      //       transactionDate,
+      //       data.recurringInterval,
+      //     ),
+      //   },
+      // });
     }
 
     await tx.account.update({
@@ -300,7 +346,12 @@ export async function updateTransaction(data: UpdateTransactionData) {
   };
 }
 
-export async function deleteTransaction(transactionId: string) {
+type DeleteScope = "THIS_ONLY" | "THIS_AND_FUTURE";
+
+export async function deleteTransaction(
+  transactionId: string,
+  deleteScope: DeleteScope = "THIS_ONLY",
+) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -321,6 +372,9 @@ export async function deleteTransaction(transactionId: string) {
     where: {
       id: transactionId,
       userId: user.id,
+    },
+    include: {
+      recurringTransaction: true,
     },
   });
 
@@ -356,6 +410,17 @@ export async function deleteTransaction(transactionId: string) {
         },
       },
     });
+
+    if (deleteScope === "THIS_AND_FUTURE" && transaction.recurringTransaction) {
+      await tx.recurringTransaction.update({
+        where: {
+          id: transaction.recurringTransaction.id,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    }
 
     await tx.transaction.delete({
       where: {

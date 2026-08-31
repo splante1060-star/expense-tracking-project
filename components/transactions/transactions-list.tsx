@@ -17,6 +17,13 @@ import {
   deleteTransaction,
   bulkDeleteTransaction,
 } from "@/actions/transaction";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 
 type TransactionItem = {
   id: string;
@@ -92,6 +99,11 @@ export default function TransactionsList({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    description: string | null;
+  } | null>(null);
+  const [showDeleteScope, setShowDeleteScope] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
@@ -277,20 +289,42 @@ export default function TransactionsList({
     ]);
   };
 
-  const handleDelete = async (
+  const handleDelete = (
     transactionId: string,
     description: string | null,
+    isRecurring: boolean,
   ) => {
+    if (isRecurring) {
+      setDeleteTarget({
+        id: transactionId,
+        description,
+      });
+
+      setShowDeleteScope(true);
+      setOpenMenu(null);
+      return;
+    }
+
     const confirmed = window.confirm(
       `Delete ${description || "this"} transaction? This cannot be undone.`,
     );
 
     if (!confirmed) return;
 
+    void deleteWithScope(transactionId, "THIS_ONLY");
+  };
+
+  const deleteWithScope = async (
+    transactionId: string,
+    deleteScope: "THIS_ONLY" | "THIS_AND_FUTURE",
+  ) => {
     setDeletingId(transactionId);
 
     try {
-      await deleteTransaction(transactionId);
+      await deleteTransaction(transactionId, deleteScope);
+
+      setShowDeleteScope(false);
+      setDeleteTarget(null);
       router.refresh();
     } finally {
       setDeletingId(null);
@@ -301,13 +335,34 @@ export default function TransactionsList({
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
 
-    const confirmed = window.confirm(
-      `Delete ${selectedIds.length} ${
-        selectedIds.length === 1 ? "transaction" : "transactions"
-      }? Account balances will be updated. This cannot be undone.`,
+    const selectedTransactions = transactions.filter((transaction) =>
+      selectedIds.includes(transaction.id),
     );
 
+    const hasRecurringTransactions = selectedTransactions.some(
+      (transaction) => transaction.recurringTransaction !== null,
+    );
+
+    const message = hasRecurringTransactions
+      ? `Delete ${selectedIds.length} ${
+          selectedIds.length === 1 ? "transaction" : "transactions"
+        }?
+
+Your selection includes recurring transactions. Only the selected occurrences will be deleted. Future recurring transactions will continue.
+
+To stop future recurring transactions, delete them individually instead.
+
+Account balances will be updated. This cannot be undone.`
+      : `Delete ${selectedIds.length} ${
+          selectedIds.length === 1 ? "transaction" : "transactions"
+        }?
+
+Account balances will be updated. This cannot be undone.`;
+
+    const confirmed = window.confirm(message);
+
     if (!confirmed) return;
+
     setIsBulkDeleting(true);
 
     try {
@@ -690,6 +745,7 @@ export default function TransactionsList({
                             handleDelete(
                               transaction.id,
                               transaction.description,
+                              Boolean(transaction.recurringTransaction),
                             )
                           }
                           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
@@ -709,6 +765,70 @@ export default function TransactionsList({
           </div>
         )}
       </div>
+
+      <Dialog
+        open={showDeleteScope}
+        onOpenChange={(open) => {
+          setShowDeleteScope(open);
+
+          if (!open) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete recurring transaction?</DialogTitle>
+
+            <DialogDescription>
+              {deleteTarget?.description || "This transaction"} is part of a
+              recurring series. Choose what you want to delete.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              disabled={!deleteTarget || deletingId === deleteTarget.id}
+              onClick={async () => {
+                if (!deleteTarget) return;
+
+                await deleteWithScope(deleteTarget.id, "THIS_ONLY");
+              }}
+              className="w-full rounded-xl border border-slate-200 p-4 text-left transition-colors hover:bg-slate-50 disabled:opacity-50"
+            >
+              <p className="font-semibold text-slate-900">
+                Delete this transaction only
+              </p>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Remove this occurrence. Future recurring transactions will
+                continue.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              disabled={!deleteTarget || deletingId === deleteTarget.id}
+              onClick={async () => {
+                if (!deleteTarget) return;
+
+                await deleteWithScope(deleteTarget.id, "THIS_AND_FUTURE");
+              }}
+              className="w-full rounded-xl border border-(--pocket-red) bg-(--pocket-red-light) p-4 text-left transition-opacity hover:opacity-80 disabled:opacity-50"
+            >
+              <p className="font-semibold text-(--pocket-red-dark)">
+                Delete & stop future transactions
+              </p>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Remove this occurrence and stop the recurring series going
+                forward.
+              </p>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

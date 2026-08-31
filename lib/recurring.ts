@@ -1,4 +1,3 @@
-import next from "next";
 import { RecurringInterval } from "./generated/prisma/enums";
 
 export function getNextRecurringDate(date: Date, interval: RecurringInterval) {
@@ -12,10 +11,8 @@ export function getNextRecurringDate(date: Date, interval: RecurringInterval) {
       nextDate.setDate(nextDate.getDate() + 7);
       return nextDate;
     case "MONTHLY":
-      nextDate.setDate(nextDate.getMonth() + 1);
       return addMonthsSafely(nextDate, 1);
     case "YEARLY":
-      nextDate.setDate(nextDate.getFullYear() + 1);
       return addYearsSafely(nextDate, 1);
   }
 }
