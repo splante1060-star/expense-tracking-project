@@ -73,10 +73,12 @@ model Transaction {
 
   recurringTransactionId String?
   recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
+  scheduledFor           DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([recurringTransactionId, scheduledFor])
   @@index([userId])
   @@index([accountId])
   @@index([recurringTransactionId])
@@ -111,6 +113,7 @@ model RecurringTransaction {
   interval          RecurringInterval
   nextRecurringDate DateTime
   lastProcessed     DateTime?
+  anchorDay         Int?
   isActive          Boolean           @default(true)
 
   userId       String

@@ -1,6 +1,10 @@
 import { RecurringInterval } from "./generated/prisma/enums";
 
-export function getNextRecurringDate(date: Date, interval: RecurringInterval) {
+export function getNextRecurringDate(
+  date: Date,
+  interval: RecurringInterval,
+  anchorDay?: number,
+) {
   const nextDate = new Date(date);
 
   switch (interval) {
@@ -11,15 +15,13 @@ export function getNextRecurringDate(date: Date, interval: RecurringInterval) {
       nextDate.setDate(nextDate.getDate() + 7);
       return nextDate;
     case "MONTHLY":
-      return addMonthsSafely(nextDate, 1);
+      return addMonthsSafely(nextDate, 1, anchorDay ?? nextDate.getDate());
     case "YEARLY":
       return addYearsSafely(nextDate, 1);
   }
 }
 
-function addMonthsSafely(date: Date, months: number) {
-  const originalDay = date.getDate();
-
+function addMonthsSafely(date: Date, months: number, anchorDay: number) {
   const result = new Date(date);
 
   result.setDate(1);
@@ -31,7 +33,7 @@ function addMonthsSafely(date: Date, months: number) {
     0,
   ).getDate();
 
-  result.setDate(Math.min(originalDay, lastDayOfTargetMonth));
+  result.setDate(Math.min(anchorDay, lastDayOfTargetMonth));
 
   return result;
 }

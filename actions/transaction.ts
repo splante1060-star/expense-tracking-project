@@ -88,6 +88,7 @@ export async function createTransaction(data: CreateTransactionData) {
           description: data.description || null,
           category: data.category,
           interval: data.recurringInterval,
+          anchorDay: transactionDate.getDate(),
           nextRecurringDate: getNextRecurringDate(
             transactionDate,
             data.recurringInterval,
@@ -283,6 +284,7 @@ export async function updateTransaction(data: UpdateTransactionData) {
             description: data.description || null,
             category: data.category,
             interval: data.recurringInterval,
+            anchorDay: transactionDate.getDate(),
             nextRecurringDate: getNextRecurringDate(
               transactionDate,
               data.recurringInterval,
@@ -301,24 +303,6 @@ export async function updateTransaction(data: UpdateTransactionData) {
           },
         });
       }
-
-      // await tx.recurringTransaction.update({
-      //   where: {
-      //     id: existingTransaction.recurringTransaction.id,
-      //   },
-      //   data: {
-      //     type: data.type,
-      //     amount,
-      //     description: data.description || null,
-      //     category: data.category,
-      //     accountId: data.accountId,
-      //     interval: data.recurringInterval,
-      //     nextRecurringDate: getNextRecurringDate(
-      //       transactionDate,
-      //       data.recurringInterval,
-      //     ),
-      //   },
-      // });
     }
 
     await tx.account.update({
