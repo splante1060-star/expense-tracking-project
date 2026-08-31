@@ -306,3 +306,81 @@ export async function deleteTransaction(transactionId: string) {
     success: true,
   };
 }
+
+export async function bulkDeleteTransaction(transactionIds: string[]) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await db.user.findUnique({
+    where: {
+      clerkUserId: userId,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (transactionIds.length === 0) {
+    throw new Error("No transactions selected");
+  }
+
+  const transactions = await db.transaction.findMany({
+    where: {
+      id: {
+        in: transactionIds,
+      },
+      userId: user.id,
+    },
+    include: {
+      account: true,
+    },
+  });
+
+  if (transactions.length !== transactionIds.length) {
+    throw new Error("One or more transactions could not be found");
+  }
+
+  await db.$transaction(async (tx) => {
+    for (const transaction of transactions) {
+      const balanceChange = getBalanceChange(
+        transaction.account.type,
+        transaction.type,
+        Number(transaction.amount),
+      );
+
+      await tx.account.update({
+        where: {
+          id: transaction.accountId,
+        },
+        data: {
+          balance: {
+            decrement: balanceChange,
+          },
+        },
+      });
+    }
+
+    await tx.transaction.deleteMany({
+      where: {
+        id: {
+          in: transactionIds,
+        },
+        userId: user.id,
+      },
+    });
+  });
+
+  revalidatePath("/transactions");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+
+  return {
+    success: true,
+    deletedCount: transactions.length,
+  };
+}

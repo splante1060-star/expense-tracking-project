@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Check,
   CircleDollarSign,
   MoreVertical,
   Pencil,
@@ -12,7 +13,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { categoryIconMap } from "@/lib/category-icons";
-import { deleteTransaction } from "@/actions/transaction";
+import {
+  deleteTransaction,
+  bulkDeleteTransaction,
+} from "@/actions/transaction";
 
 type TransactionItem = {
   id: string;
@@ -80,6 +84,8 @@ export default function TransactionsList({
 
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
@@ -207,6 +213,14 @@ export default function TransactionsList({
     sortBy,
   ]);
 
+  useEffect(() => {
+    const visibleIds = new Set(
+      filteredTransactions.map((transaction) => transaction.id),
+    );
+
+    setSelectedIds((current) => current.filter((id) => visibleIds.has(id)));
+  }, [filteredTransactions]);
+
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
     typeFilter !== "ALL" ||
@@ -224,6 +238,37 @@ export default function TransactionsList({
     setMonthFilter("ALL");
     setRecurringFilter("ALL");
     setSortBy("NEWEST");
+    setSelectedIds([]);
+  };
+
+  const visibleTransactionIds = filteredTransactions.map(
+    (transaction) => transaction.id,
+  );
+
+  const allVisibleSelected =
+    visibleTransactionIds.length > 0 &&
+    visibleTransactionIds.every((id) => selectedIds.includes(id));
+
+  const toggleTransaction = (transactionId: string) => {
+    setSelectedIds((current) =>
+      current.includes(transactionId)
+        ? current.filter((id) => id !== transactionId)
+        : [...current, transactionId],
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds((current) =>
+        current.filter((id) => !visibleTransactionIds.includes(id)),
+      );
+
+      return;
+    }
+
+    setSelectedIds((current) => [
+      ...new Set([...current, ...visibleTransactionIds]),
+    ]);
   };
 
   const handleDelete = async (
@@ -244,6 +289,30 @@ export default function TransactionsList({
     } finally {
       setDeletingId(null);
       setOpenMenu(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Delete ${selectedIds.length} ${
+        selectedIds.length === 1 ? "transaction" : "transactions"
+      }? Account balances will be updated. This cannot be undone.`,
+    );
+
+    if (!confirmed) return;
+    setIsBulkDeleting(true);
+
+    try {
+      await bulkDeleteTransaction(selectedIds);
+
+      setSelectedIds([]);
+      setOpenMenu(null);
+
+      router.refresh();
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -275,7 +344,9 @@ export default function TransactionsList({
             <input
               type="search"
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+              }}
               placeholder="Search transactions..."
               className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-400 focus:border-(--pocket-blue-soft)"
             />
@@ -284,9 +355,9 @@ export default function TransactionsList({
           <div className="flex flex-wrap gap-2">
             <select
               value={typeFilter}
-              onChange={(event) =>
-                setTypeFilter(event.target.value as TypeFilter)
-              }
+              onChange={(event) => {
+                setTypeFilter(event.target.value as TypeFilter);
+              }}
               className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 outline-none focus:border-(--pocket-blue-soft)"
             >
               <option value="ALL">All types</option>
@@ -296,7 +367,9 @@ export default function TransactionsList({
 
             <select
               value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
+              onChange={(event) => {
+                setCategoryFilter(event.target.value);
+              }}
               className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 outline-none focus:border-(--pocket-blue-soft)"
             >
               <option value="ALL">All categories</option>
@@ -310,7 +383,9 @@ export default function TransactionsList({
 
             <select
               value={accountFilter}
-              onChange={(event) => setAccountFilter(event.target.value)}
+              onChange={(event) => {
+                setAccountFilter(event.target.value);
+              }}
               className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 outline-none focus:border-(--pocket-blue-soft)"
             >
               <option value="ALL">All accounts</option>
@@ -324,7 +399,9 @@ export default function TransactionsList({
 
             <select
               value={monthFilter}
-              onChange={(event) => setMonthFilter(event.target.value)}
+              onChange={(event) => {
+                setMonthFilter(event.target.value);
+              }}
               className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 outline-none focus:border-(--pocket-blue-soft)"
             >
               <option value="ALL">All months</option>
@@ -338,9 +415,9 @@ export default function TransactionsList({
 
             <select
               value={recurringFilter}
-              onChange={(event) =>
-                setRecurringFilter(event.target.value as RecurringFilter)
-              }
+              onChange={(event) => {
+                setRecurringFilter(event.target.value as RecurringFilter);
+              }}
               className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 outline-none focus:border-(--pocket-blue-soft)"
             >
               <option value="ALL">All frequency</option>
@@ -350,7 +427,9 @@ export default function TransactionsList({
 
             <select
               value={sortBy}
-              onChange={(event) => setSortBy(event.target.value as SortOption)}
+              onChange={(event) => {
+                setSortBy(event.target.value as SortOption);
+              }}
               className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 outline-none focus:border-(--pocket-blue-soft)"
             >
               <option value="NEWEST">Newest first</option>
@@ -372,6 +451,43 @@ export default function TransactionsList({
           </div>
         </div>
 
+        {selectedIds.length > 0 && (
+          <div className="mt-4 flex items-center justify-between rounded-xl bg-(--pocket-blue-light) px-4 py-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-(--pocket-blue)">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
+                <Check size={14} />
+              </div>
+
+              <span>
+                {selectedIds.length}{" "}
+                {selectedIds.length === 1 ? "transaction" : "transactions"}{" "}
+                selected
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedIds([])}
+                className="text-xs font-medium text-slate-500 transition-opacity hover:opacity-70"
+              >
+                Clear
+              </button>
+
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={handleBulkDelete}
+                className="flex items-center gap-1.5 rounded-lg bg-(--pocket-red-light) px-3 py-2 text-xs font-semibold text-(--pocket-red-dark) transition-colors hover:bg-(--pocket-red) hover:text-white disabled:opacity-50"
+              >
+                <Trash2 size={14} />
+
+                {isBulkDeleting ? "Deleting..." : "Delete selected"}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
           <span>
             {filteredTransactions.length}{" "}
@@ -388,7 +504,16 @@ export default function TransactionsList({
 
       {/* TRANSACTION TABLE */}
       <div className="overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(120px,0.8fr)_120px_110px_28px] gap-4 border-b border-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <div className="grid grid-cols-[32px_minmax(0,1.5fr)_minmax(120px,0.8fr)_120px_110px_28px] gap-4 border-b border-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center justify-center">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleSelectAll}
+              aria-label="Select all visible transactions"
+              className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-(--pocket-blue)"
+            />
+          </div>
           <span>Transaction</span>
           <span>Category</span>
           <span>Date</span>
@@ -434,8 +559,19 @@ export default function TransactionsList({
               return (
                 <div
                   key={transaction.id}
-                  className="grid grid-cols-[minmax(0,1.5fr)_minmax(120px,0.8fr)_120px_100px_28px] items-center gap-4 px-5 py-4"
+                  className="grid grid-cols-[32px_minmax(0,1.5fr)_minmax(120px,0.8fr)_120px_100px_28px] items-center gap-4 px-5 py-4"
                 >
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(transaction.id)}
+                      onChange={() => toggleTransaction(transaction.id)}
+                      aria-label={`Select ${
+                        transaction.description || "transaction"
+                      }`}
+                      className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-(--pocket-blue)"
+                    />
+                  </div>
                   <div className="flex min-w-0 items-center gap-3">
                     <div
                       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
