@@ -28,6 +28,12 @@ type TransactionItem = {
   createdAt: Date;
   status: string;
   isRecurring: boolean;
+  recurringInterval: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
+  recurringTransaction: {
+    id: string;
+    interval: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+    isActive: boolean;
+  } | null;
   account: {
     id: string;
     name: string;
@@ -595,7 +601,11 @@ export default function TransactionsList({
                         {transaction.isRecurring && (
                           <>
                             <span className="mx-1.5">•</span>
-                            <span>Recurring</span>
+                            <span>
+                              Recurring
+                              {transaction.recurringInterval &&
+                                ` (${formatCategory(transaction.recurringInterval)})`}
+                            </span>
                           </>
                         )}
 

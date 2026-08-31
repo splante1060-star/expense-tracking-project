@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { db } from "@/lib/prisma";
 import TransactionsList from "@/components/transactions/transactions-list";
+import { RecurringInterval } from "@/lib/generated/prisma/enums";
 
 export default async function TransactionsPage() {
   const { userId } = await auth();
@@ -34,6 +35,13 @@ export default async function TransactionsPage() {
           type: true,
         },
       },
+      recurringTransaction: {
+        select: {
+          id: true,
+          interval: true,
+          isActive: true,
+        },
+      },
     },
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
@@ -47,6 +55,16 @@ export default async function TransactionsPage() {
     date: transaction.date,
     createdAt: transaction.createdAt,
     status: transaction.status,
+
+    isRecurring: transaction.recurringTransactionId !== null,
+    recurringInterval: transaction.recurringTransaction?.interval ?? null,
+    recurringTransaction: transaction.recurringTransaction
+      ? {
+          id: transaction.recurringTransaction.id,
+          interval: transaction.recurringTransaction.interval,
+          isActive: transaction.recurringTransaction.isActive,
+        }
+      : null,
     account: {
       id: transaction.account.id,
       name: transaction.account.name,

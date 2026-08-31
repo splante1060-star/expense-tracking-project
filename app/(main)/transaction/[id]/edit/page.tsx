@@ -36,6 +36,15 @@ export default async function EditTransactionPage({
       id,
       userId: user.id,
     },
+    include: {
+      recurringTransaction: {
+        select: {
+          id: true,
+          interval: true,
+          isActive: true,
+        },
+      },
+    },
   });
 
   if (!transaction) {
@@ -82,8 +91,13 @@ export default async function EditTransactionPage({
           date: transactionDate,
           category: transaction.category,
           accountId: transaction.accountId,
-          isRecurring: transaction.isRecurring,
-          recurringInterval: transaction.recurringInterval ?? undefined,
+          recurringTransaction: transaction.recurringTransaction
+            ? {
+                id: transaction.recurringTransaction.id,
+                interval: transaction.recurringTransaction.interval,
+                isActive: transaction.recurringTransaction.isActive,
+              }
+            : null,
         }}
       />
     </div>

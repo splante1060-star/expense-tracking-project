@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
+import { getNextRecurringDate } from "@/lib/recurring";
 import type {
   CategoryType,
   RecurringInterval,
@@ -69,17 +70,46 @@ export async function createTransaction(data: CreateTransactionData) {
   const balanceChange = getBalanceChange(account.type, data.type, amount);
 
   const transaction = await db.$transaction(async (tx) => {
+    const transactionDate = new Date(`${data.date}T12:00:00`);
+
+    let recurringTransactionId: string | null = null;
+
+    if (data.isRecurring) {
+      if (!data.recurringInterval) {
+        throw new Error(
+          "Recurring interval is required for recurring transactions",
+        );
+      }
+
+      const recurringTransaction = await tx.recurringTransaction.create({
+        data: {
+          type: data.type,
+          amount,
+          description: data.description || null,
+          category: data.category,
+          interval: data.recurringInterval,
+          nextRecurringDate: getNextRecurringDate(
+            transactionDate,
+            data.recurringInterval,
+          ),
+          userId: user.id,
+          accountId: data.accountId,
+        },
+      });
+
+      recurringTransactionId = recurringTransaction.id;
+    }
+
     const newTransaction = await tx.transaction.create({
       data: {
         type: data.type,
         amount,
         description: data.description || null,
-        date: new Date(`${data.date}T12:00:00`),
+        date: transactionDate,
         category: data.category,
         accountId: data.accountId,
         userId: user.id,
-        isRecurring: Boolean(data.isRecurring),
-        recurringInterval: data.isRecurring ? data.recurringInterval : null,
+        recurringTransactionId,
       },
     });
 
@@ -114,8 +144,10 @@ type UpdateTransactionData = {
   description?: string;
   category: CategoryType;
   accountId: string;
+  date: string;
   isRecurring?: boolean;
   recurringInterval?: RecurringInterval;
+  updateScope?: "THIS_ONLY" | "THIS_AND_FUTURE";
 };
 
 export async function updateTransaction(data: UpdateTransactionData) {
@@ -145,6 +177,10 @@ export async function updateTransaction(data: UpdateTransactionData) {
     where: {
       id: data.transactionId,
       userId: user.id,
+    },
+    include: {
+      account: true,
+      recurringTransaction: true,
     },
   });
 
@@ -194,6 +230,8 @@ export async function updateTransaction(data: UpdateTransactionData) {
       },
     });
 
+    const transactionDate = new Date(`${data.date}T12:00:00`);
+
     const updatedTransaction = await tx.transaction.update({
       where: {
         id: existingTransaction.id,
@@ -202,12 +240,40 @@ export async function updateTransaction(data: UpdateTransactionData) {
         type: data.type,
         amount,
         description: data.description || null,
+        date: transactionDate,
         category: data.category,
         accountId: data.accountId,
-        isRecurring: Boolean(data.isRecurring),
-        recurringInterval: data.isRecurring ? data.recurringInterval : null,
       },
     });
+
+    if (
+      data.updateScope === "THIS_AND_FUTURE" &&
+      existingTransaction.recurringTransaction
+    ) {
+      if (!data.recurringInterval) {
+        throw new Error(
+          "Recurring interval is required when updating a recurring series",
+        );
+      }
+
+      await tx.recurringTransaction.update({
+        where: {
+          id: existingTransaction.recurringTransaction.id,
+        },
+        data: {
+          type: data.type,
+          amount,
+          description: data.description || null,
+          category: data.category,
+          accountId: data.accountId,
+          interval: data.recurringInterval,
+          nextRecurringDate: getNextRecurringDate(
+            transactionDate,
+            data.recurringInterval,
+          ),
+        },
+      });
+    }
 
     await tx.account.update({
       where: {

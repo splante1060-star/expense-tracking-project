@@ -14,6 +14,14 @@ import {
 import { transactionSchema } from "@/lib/schema";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import useFetch from "@/hooks/use-fetch";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type TransactionFormData = z.input<typeof transactionSchema>;
 
@@ -47,8 +55,11 @@ type TransactionFormProps = {
       | "INCOME"
       | "OTHER";
     accountId: string;
-    isRecurring: boolean;
-    recurringInterval?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+    recurringTransaction: {
+      id: string;
+      interval: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+      isActive: boolean;
+    } | null;
   };
 };
 
@@ -81,6 +92,10 @@ export default function TransactionForm({
 }: TransactionFormProps) {
   const router = useRouter();
 
+  const [showUpdateScope, setShowUpdateScope] = useState(false);
+  const [pendingUpdate, setPendingUpdate] =
+    useState<TransactionFormData | null>(null);
+
   const defaultAccount =
     accounts.find((account) => account.isDefault) ?? accounts[0];
 
@@ -103,8 +118,9 @@ export default function TransactionForm({
         accounts.find((account) => account.isDefault)?.id ??
         accounts[0]?.id ??
         "",
-      isRecurring: transaction?.isRecurring ?? false,
-      recurringInterval: transaction?.recurringInterval ?? undefined,
+      isRecurring: Boolean(transaction?.recurringTransaction),
+      recurringInterval:
+        transaction?.recurringTransaction?.interval ?? undefined,
     },
   });
 
@@ -118,21 +134,38 @@ export default function TransactionForm({
   const category = watch("category");
   const isRecurring = watch("isRecurring");
 
+  const handleUpdate = async (
+    data: TransactionFormData,
+    updateScope: "THIS_ONLY" | "THIS_AND_FUTURE",
+  ) => {
+    if (!transaction) return;
+
+    await updateTransaction({
+      transactionId: transaction.id,
+      type: data.type,
+      amount: data.amount,
+      description: data.description,
+      category: data.category,
+      accountId: data.accountId,
+      date: data.date,
+      isRecurring: data.isRecurring,
+      recurringInterval: data.recurringInterval,
+      updateScope,
+    });
+
+    router.push("/transactions");
+    router.refresh();
+  };
+
   const onSubmit = async (data: TransactionFormData) => {
     if (transaction) {
-      await updateTransaction({
-        transactionId: transaction.id,
-        type: data.type,
-        amount: data.amount,
-        description: data.description,
-        category: data.category,
-        accountId: data.accountId,
-        isRecurring: data.isRecurring,
-        recurringInterval: data.recurringInterval,
-      });
+      if (transaction.recurringTransaction) {
+        setPendingUpdate(data);
+        setShowUpdateScope(true);
+        return;
+      }
 
-      router.push("/transactions");
-      router.refresh();
+      await handleUpdate(data, "THIS_ONLY");
       return;
     }
 
@@ -297,7 +330,7 @@ export default function TransactionForm({
           <input
             type="date"
             {...register("date")}
-            disabled={Boolean(transaction)}
+            // disabled={Boolean(transaction)}
             className={`w-full rounded-xl border py-2.5 pr-3 pl-10 text-sm outline-none ${
               transaction
                 ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500"
@@ -414,6 +447,61 @@ export default function TransactionForm({
               : "Add Transaction"}
         </button>
       </div>
+
+      {/* RECURRING CHANGE DIALOG */}
+      <Dialog open={showUpdateScope} onOpenChange={setShowUpdateScope}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apply changes to recurring transaction?</DialogTitle>
+
+            <DialogDescription>
+              This transaction is part of a recurring series. Choose how you
+              want these changes to be applied.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!pendingUpdate) return;
+
+                setShowUpdateScope(false);
+                await handleUpdate(pendingUpdate, "THIS_ONLY");
+              }}
+              className="w-full rounded-xl border border-slate-200 p-4 text-left transition-colors hover:bg-slate-50"
+            >
+              <p className="font-semibold text-slate-900">
+                This transaction only
+              </p>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Update only this occurrence. Future transactions will stay the
+                same.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                if (!pendingUpdate) return;
+
+                setShowUpdateScope(false);
+                await handleUpdate(pendingUpdate, "THIS_AND_FUTURE");
+              }}
+              className="w-full rounded-xl border border-(--pocket-blue-soft) bg-(--pocket-blue-light) p-4 text-left transition-opacity hover:opacity-80"
+            >
+              <p className="font-semibold text-(--pocket-blue)">
+                This & future transactions
+              </p>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Update this occurrence and the recurring series going forward.
+              </p>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

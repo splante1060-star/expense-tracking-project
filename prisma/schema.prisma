@@ -13,37 +13,39 @@ datasource db {
 }
 
 model User {
-  id                   String                @id @default(uuid())
-  clerkUserId          String                @unique
-  email                String                @unique
-  phoneNumber          String?               @unique
-  name                 String?
-  imageUrl             String?
-  transactions         Transaction[]
-  accounts             Account[]
-  budgets              Budget[]
-  savingsGoals         SavingsGoal[]
-  savingsContributions SavingsContribution[]
-  bills                Bill[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  id                     String                 @id @default(uuid())
+  clerkUserId            String                 @unique
+  email                  String                 @unique
+  phoneNumber            String?                @unique
+  name                   String?
+  imageUrl               String?
+  transactions           Transaction[]
+  recurring_transactions RecurringTransaction[]
+  accounts               Account[]
+  budgets                Budget[]
+  savingsGoals           SavingsGoal[]
+  savingsContributions   SavingsContribution[]
+  bills                  Bill[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
 
   @@map("users")
 }
 
 model Account {
-  id                   String                @id @default(uuid())
-  name                 String
-  type                 AccountType
-  balance              Decimal               @default(0)
-  isDefault            Boolean               @default(false)
-  userId               String
-  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions         Transaction[]
-  bills                Bill[]
-  savingsContributions SavingsContribution[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  id                     String                 @id @default(uuid())
+  name                   String
+  type                   AccountType
+  balance                Decimal                @default(0)
+  isDefault              Boolean                @default(false)
+  userId                 String
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions           Transaction[]
+  recurring_transactions RecurringTransaction[]
+  bills                  Bill[]
+  savingsContributions   SavingsContribution[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
 
   @@index([userId])
   @@map("accounts")
@@ -56,27 +58,28 @@ enum AccountType {
 }
 
 model Transaction {
-  id                String             @id @default(uuid())
-  type              TransactionType
-  amount            Decimal
-  description       String?
-  date              DateTime
-  category          CategoryType
-  receiptUrl        String?
-  isRecurring       Boolean            @default(false)
-  recurringInterval RecurringInterval?
-  nextRecurringDate DateTime?
-  lastProcessed     DateTime?
-  status            TransactionStatus  @default(COMPLETED)
-  userId            String
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accountId         String
-  account           Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id          String            @id @default(uuid())
+  type        TransactionType
+  amount      Decimal
+  description String?
+  date        DateTime
+  category    CategoryType
+  receiptUrl  String?
+  status      TransactionStatus @default(COMPLETED)
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  recurringTransactionId String?
+  recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([accountId])
+  @@index([recurringTransactionId])
   @@map("transactions")
 }
 
@@ -96,6 +99,32 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   FAILED
+}
+
+model RecurringTransaction {
+  id          String          @id @default(uuid())
+  type        TransactionType
+  amount      Decimal
+  description String?
+  category    CategoryType
+
+  interval          RecurringInterval
+  nextRecurringDate DateTime
+  lastProcessed     DateTime?
+  isActive          Boolean           @default(true)
+
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId    String
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([nextRecurringDate])
+  @@map("recurring_transactions")
 }
 
 model Budget {
