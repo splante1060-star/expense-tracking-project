@@ -140,6 +140,10 @@ export const billSchema = z
   .refine((data) => !data.isRecurring || Boolean(data.recurringInterval), {
     message: "Choose how often this bill repeats",
     path: ["recurringInterval"],
+  })
+  .refine((data) => !data.isAutoPay || Boolean(data.accountId), {
+    message: "Choose an account for AutoPay",
+    path: ["accountId"],
   });
 
 export type BillFormData = z.input<typeof billSchema>;

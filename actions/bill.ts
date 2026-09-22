@@ -70,6 +70,10 @@ export async function createBill(data: CreateBillData) {
     throw new Error("Choose how often this bill repeats.");
   }
 
+  if (data.isAutoPay && !data.accountId) {
+    throw new Error("Choose an account to use AutoPay.");
+  }
+
   if (data.accountId) {
     const account = await db.account.findFirst({
       where: {
@@ -157,6 +161,10 @@ export async function updateBill(data: UpdateBillData) {
 
   if (data.isRecurring && !data.recurringInterval) {
     throw new Error("Choose how often this bill repeats.");
+  }
+
+  if (data.isAutoPay && !data.accountId) {
+    throw new Error("Choose an account to use AutoPay.");
   }
 
   if (data.accountId) {
@@ -290,12 +298,26 @@ export async function markBillAsPaid(billId: string, accountId: string) {
   const balanceChange = getBalanceChange(account.type, "EXPENSE", amount);
 
   await db.$transaction(async (tx) => {
+    const existingPayment = await tx.transaction.findUnique({
+      where: {
+        billId_scheduledFor: {
+          billId: bill.id,
+          scheduledFor: bill.dueDate,
+        },
+      },
+    });
+
+    if (existingPayment) {
+      throw new Error("This bill occurrence has already been paid.");
+    }
+
     await tx.transaction.create({
       data: {
         type: "EXPENSE",
         amount: bill.amount,
         description: bill.name,
         date: new Date(),
+        scheduledFor: bill.dueDate,
         category: bill.category,
         status: "COMPLETED",
         userId: user.id,

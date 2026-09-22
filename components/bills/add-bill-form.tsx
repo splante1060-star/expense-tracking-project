@@ -126,6 +126,7 @@ export default function AddBillForm({
   });
 
   const isRecurring = watch("isRecurring");
+  const isAutoPay = watch("isAutoPay");
 
   const isEditing = Boolean(bill);
   const loading = creating || updating;
@@ -260,28 +261,30 @@ export default function AddBillForm({
           </div>
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Pay from account
-          </label>
+        {!isAutoPay && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Pay from account
+            </label>
 
-          <select
-            {...register("accountId")}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-(--pocket-blue) focus:ring-2 focus:ring-(--pocket-blue-light)"
-          >
-            <option value="">No linked account</option>
+            <select
+              {...register("accountId")}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-(--pocket-blue) focus:ring-2 focus:ring-(--pocket-blue-light)"
+            >
+              <option value="">No linked account</option>
 
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
 
-          <p className="mt-1.5 text-xs text-slate-400">
-            Optional — this only tracks where the bill is usually paid from.
-          </p>
-        </div>
+            <p className="mt-1.5 text-xs text-slate-400">
+              Optional — tracks where the bill is usually paid from.
+            </p>
+          </div>
+        )}
 
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <label className="flex cursor-pointer items-center justify-between gap-4">
@@ -338,7 +341,8 @@ export default function AddBillForm({
               </span>
 
               <span className="mt-0.5 block text-xs text-slate-500">
-                Mark this bill as automatically paid.
+                This bill is paid automatically elsewhere. Pocket will record
+                the payment for you on its due date.
               </span>
             </div>
 
@@ -348,6 +352,38 @@ export default function AddBillForm({
               className="h-4 w-4 accent-(--pocket-blue)"
             />
           </label>
+
+          {isAutoPay && (
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                Pay from account <span className="text-red-500">*</span>
+              </label>
+
+              <select
+                {...register("accountId")}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-(--pocket-blue) focus:ring-2 focus:ring-(--pocket-blue-light)"
+              >
+                <option value="">Choose an account</option>
+
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+
+              {errors.accountId ? (
+                <p className="mt-1.5 text-xs text-red-500">
+                  {errors.accountId.message}
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-slate-400">
+                  Required for AutoPay — Pocket will record payments from this
+                  account.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">

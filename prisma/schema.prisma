@@ -82,6 +82,7 @@ model Transaction {
   updatedAt DateTime @updatedAt
 
   @@unique([recurringTransactionId, scheduledFor])
+  @@unique([billId, scheduledFor])
   @@index([userId])
   @@index([accountId])
   @@index([recurringTransactionId])
