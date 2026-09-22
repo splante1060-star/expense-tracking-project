@@ -119,7 +119,7 @@ export default function AddBillForm({
       category:
         bill && isBillCategory(bill.category) ? bill.category : "UTILITIES",
       accountId: bill?.accountId ?? "",
-      isRecurring: bill?.isRecurring ?? false,
+      isRecurring: bill?.isRecurring ?? true,
       recurringInterval: bill?.recurringInterval ?? null,
       isAutoPay: bill?.isAutoPay ?? false,
     },

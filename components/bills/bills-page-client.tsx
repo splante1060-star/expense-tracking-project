@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import {
   CalendarDays,
+  CheckCircle2,
   MoreVertical,
   Pencil,
   Plus,
@@ -19,7 +20,7 @@ import type {
   RecurringInterval,
 } from "@/lib/generated/prisma/client";
 import AddBillForm from "@/components/bills/add-bill-form";
-import { deleteBill } from "@/actions/bill";
+import { deleteBill, markBillAsPaid } from "@/actions/bill";
 import { categoryIconMap } from "@/lib/category-icons";
 
 type Account = {
@@ -78,6 +79,11 @@ export default function BillsPageClient({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [payingBill, setPayingBill] = useState<Bill | null>(null);
+  const [paymentAccountId, setPaymentAccountId] = useState("");
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
+
   const handleAdd = () => {
     setEditingBill(null);
     setShowForm(true);
@@ -118,6 +124,48 @@ export default function BillsPageClient({
     }
   };
 
+  const handleOpenPayment = (bill: Bill) => {
+    setOpenMenu(null);
+    setPayingBill(bill);
+    setPaymentAccountId(bill.accountId ?? "");
+    setPaymentError(null);
+  };
+
+  const handleClosePayment = () => {
+    if (isPaying) return;
+
+    setPayingBill(null);
+    setPaymentAccountId("");
+    setPaymentError(null);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!payingBill) return;
+    if (!paymentAccountId) {
+      setPaymentError("Choose the account this bill was paid from.");
+      return;
+    }
+
+    setIsPaying(true);
+    setPaymentError(null);
+
+    try {
+      await markBillAsPaid(payingBill.id, paymentAccountId);
+
+      setPayingBill(null);
+      setPaymentAccountId("");
+      router.refresh();
+    } catch (error) {
+      setPaymentError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong recording this payment.",
+      );
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -153,6 +201,76 @@ export default function BillsPageClient({
           bill={editingBill}
           onClose={handleCloseForm}
         />
+      )}
+
+      {payingBill && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-(--pocket-green-light) text-(--pocket-green-dark)">
+              <CheckCircle2 size={21} />
+            </div>
+
+            <h2 className="mt-4 text-lg font-semibold text-slate-900">
+              Mark {payingBill.name} as paid?
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Pocket will record a {formatCurrency(payingBill.amount)} expense
+              and update the account balance.
+            </p>
+
+            <div className="mt-5">
+              <label
+                htmlFor="payment-account"
+                className="text-sm font-medium text-slate-700"
+              >
+                Paid from
+              </label>
+
+              <select
+                id="payment-account"
+                value={paymentAccountId}
+                onChange={(event) => setPaymentAccountId(event.target.value)}
+                disabled={isPaying}
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-(--pocket-blue)"
+              >
+                <option value="">Choose an account</option>
+
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {paymentError && (
+              <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {paymentError}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleClosePayment}
+                disabled={isPaying}
+                className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmPayment}
+                disabled={isPaying}
+                className="rounded-full bg-(--pocket-green) px-5 py-2 text-sm font-semibold text-white transition hover:bg-(--pocket-green-dark) disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isPaying ? "Recording..." : "Confirm Payment"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {bills.length === 0 ? (
@@ -280,6 +398,14 @@ export default function BillsPageClient({
                         />
 
                         <div className="absolute right-0 top-9 z-50 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPayment(bill)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-(--pocket-green-dark) transition hover:bg-(--pocket-green-light)"
+                          >
+                            <CheckCircle2 size={14} />
+                            Mark as Paid
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleEdit(bill)}

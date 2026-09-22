@@ -25,6 +25,7 @@ export default async function BillsPage() {
     db.bill.findMany({
       where: {
         userId: user.id,
+        isActive: true,
       },
       orderBy: {
         dueDate: "asc",
