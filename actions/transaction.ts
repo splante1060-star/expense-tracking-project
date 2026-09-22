@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getNextRecurringDate } from "@/lib/recurring";
+import { getBalanceChange } from "@/lib/account-balance";
 import type {
   CategoryType,
   RecurringInterval,
@@ -20,18 +21,6 @@ type CreateTransactionData = {
   isRecurring?: boolean;
   recurringInterval?: RecurringInterval;
 };
-
-function getBalanceChange(
-  accountType: "DEBIT" | "CREDIT" | "SAVINGS",
-  transactionType: TransactionType,
-  amount: number,
-) {
-  if (accountType === "CREDIT") {
-    return transactionType === "EXPENSE" ? amount : -amount;
-  }
-
-  return transactionType === "INCOME" ? amount : -amount;
-}
 
 export async function createTransaction(data: CreateTransactionData) {
   const { userId } = await auth();

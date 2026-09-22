@@ -75,6 +75,9 @@ model Transaction {
   recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
   scheduledFor           DateTime?
 
+  billId String?
+  bill   Bill?   @relation(fields: [billId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -82,6 +85,7 @@ model Transaction {
   @@index([userId])
   @@index([accountId])
   @@index([recurringTransactionId])
+  @@index([billId])
   @@map("transactions")
 }
 
@@ -206,17 +210,22 @@ model Bill {
   category          CategoryType
   isRecurring       Boolean            @default(false)
   recurringInterval RecurringInterval?
+  anchorDay         Int?
   isAutoPay         Boolean            @default(false)
+  isActive          Boolean            @default(true)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  accountId String?
-  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId    String?
+  account      Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  transactions Transaction[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([accountId])
+  @@index([dueDate])
   @@map("bills")
 }

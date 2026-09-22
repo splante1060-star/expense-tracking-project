@@ -1,17 +1,6 @@
 import { db } from "./prisma";
 import { getNextRecurringDate } from "./recurring";
-
-function getBalanceChange(
-  accountType: "DEBIT" | "CREDIT" | "SAVINGS",
-  transactionType: "INCOME" | "EXPENSE",
-  amount: number,
-) {
-  if (accountType === "CREDIT") {
-    return transactionType === "EXPENSE" ? amount : -amount;
-  }
-
-  return transactionType === "INCOME" ? amount : -amount;
-}
+import { getBalanceChange } from "@/lib/account-balance";
 
 export async function processRecurringTransactions() {
   const now = new Date();
