@@ -46,6 +46,36 @@ type BillsPageClientProps = {
   accounts: Account[];
 };
 
+function getBillDueStatus(dueDate: string | Date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+
+  if (due < today) {
+    const daysOverDue = Math.floor(
+      (today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return {
+      status: "overdue" as const,
+      daysOverDue,
+    };
+  }
+
+  if (due.getTime() === today.getTime()) {
+    return {
+      status: "today" as const,
+      daysOverdue: 0,
+    };
+  }
+
+  return {
+    status: "upcoming" as const,
+    daysOverdue: 0,
+  };
+}
+
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -66,6 +96,14 @@ function formatInterval(interval: Bill["recurringInterval"]) {
   return interval
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function BillsPageClient({
@@ -312,6 +350,8 @@ export default function BillsPageClient({
                 ? formatInterval(bill.recurringInterval)
                 : null;
 
+              const dueStatus = getBillDueStatus(bill.dueDate);
+
               return (
                 <div
                   key={bill.id}
@@ -341,16 +381,24 @@ export default function BillsPageClient({
                   </div>
 
                   <div className="text-sm text-slate-600">
-                    <div className="flex items-center gap-1.5">
-                      <CalendarDays size={14} className="text-slate-400" />
+                    <div
+                      className={`flex items-center gap-1.5 text-sm ${
+                        dueStatus.status === "overdue"
+                          ? "font-medium text-(--pocket-orange-dark)"
+                          : dueStatus.status === "today"
+                            ? "font-medium text-(--pocket-orange)"
+                            : "text-slate-500"
+                      }`}
+                    >
+                      <CalendarDays size={14} />
 
-                      <span>
-                        {new Date(bill.dueDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
+                      {dueStatus.status === "overdue" ? (
+                        <span>Overdue · {formatDate(bill.dueDate)}</span>
+                      ) : dueStatus.status === "today" ? (
+                        <span>Due today</span>
+                      ) : (
+                        <span>{formatDate(bill.dueDate)}</span>
+                      )}
                     </div>
                   </div>
 
