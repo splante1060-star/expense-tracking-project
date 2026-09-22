@@ -37,6 +37,7 @@ export async function processAutoPayBills() {
         billId: bill.id,
         accountId: bill.accountId,
         userId: bill.userId,
+        source: "AUTOPAY",
       });
 
       billsProcessed++;

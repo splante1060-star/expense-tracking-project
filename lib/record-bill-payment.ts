@@ -6,12 +6,14 @@ type RecordBillPaymentArgs = {
   billId: string;
   accountId: string;
   userId: string;
+  source?: "MANUAL" | "AUTOPAY";
 };
 
 export async function recordBillPayment({
   billId,
   accountId,
   userId,
+  source = "MANUAL",
 }: RecordBillPaymentArgs) {
   const bill = await db.bill.findFirst({
     where: {
@@ -103,6 +105,18 @@ export async function recordBillPayment({
         data: {
           isActive: false,
           accountId: account.id,
+        },
+      });
+    }
+
+    if (source === "AUTOPAY") {
+      await tx.notification.create({
+        data: {
+          title: "AutoPay recorded",
+          message: `${bill.name} payment of $${amount.toFixed(2)} was recorded from ${account.name}`,
+          type: "SUCCESS",
+          actionUrl: "/transactions",
+          userId,
         },
       });
     }
