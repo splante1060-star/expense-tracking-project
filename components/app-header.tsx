@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell } from "lucide-react";
+import NotificationBell from "@/components/notification-bell";
 import { UserButton, useUser } from "@clerk/nextjs";
 
 export default function AppHeader() {
@@ -21,15 +21,7 @@ export default function AppHeader() {
         </p>
 
         {/* NOTIFICATIONS */}
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-(--pocket-blue-light) hover:text-(--pocket-blue)"
-        >
-          <Bell size={19} strokeWidth={1.8} />
-
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-(--pocket-purple)" />
-        </button>
+        <NotificationBell />
 
         {/* CLERK USER MENU */}
         <UserButton />
