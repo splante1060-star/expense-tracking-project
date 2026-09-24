@@ -142,7 +142,7 @@ export default function NotificationBell() {
     setNewNotificationIds(new Set());
   }
 
-  async function handleConfirmPayment() {
+  async function handleConfirmPayment(paymentDate: string) {
     if (!selectedNotification) {
       return;
     }
@@ -150,7 +150,7 @@ export default function NotificationBell() {
     setIsConfirmingPayment(true);
 
     try {
-      await confirmBillPayment(selectedNotification.id);
+      await confirmBillPayment(selectedNotification.id, paymentDate);
 
       setNotifications((current) =>
         current.filter(

@@ -1,6 +1,7 @@
 "use client";
 
-import { CircleAlert, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarDays, CircleAlert, X } from "lucide-react";
 
 type BillPaymentConfirmationProps = {
   isOpen: boolean;
@@ -9,7 +10,7 @@ type BillPaymentConfirmationProps = {
   dueDate: Date;
   accountName: string;
   isProcessing?: boolean;
-  onConfirm: () => void;
+  onConfirm: (paymentDate: string) => void;
   onClose: () => void;
 };
 
@@ -23,6 +24,20 @@ export default function BillPaymentConfirmation({
   onConfirm,
   onClose,
 }: BillPaymentConfirmationProps) {
+  const [paymentDate, setPaymentDate] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      const date = new Date(dueDate);
+
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+
+      setPaymentDate(`${year}-${month}-${day}`);
+    }
+  }, [isOpen, dueDate]);
+
   if (!isOpen) {
     return null;
   }
@@ -84,6 +99,35 @@ export default function BillPaymentConfirmation({
             </div>
           </div>
 
+          <div className="mt-4">
+            <label
+              htmlFor="payment-date"
+              className="mb-2 block text-sm font-semibold text-slate-700"
+            >
+              Payment date
+            </label>
+
+            <div className="relative">
+              <CalendarDays
+                size={17}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <input
+                id="payment-date"
+                type="date"
+                value={paymentDate}
+                onChange={(event) => setPaymentDate(event.target.value)}
+                disabled={isProcessing}
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none transition-colors focus:border-(--pocket-blue) disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+
+            <p className="mt-1.5 text-xs text-slate-500">
+              Choose the date the payment actually came out of your account.
+            </p>
+          </div>
+
           <p className="mt-4 text-xs leading-5 text-slate-500">
             Pocket will only record this payment. It does not send money to the
             bill provider.
@@ -101,8 +145,8 @@ export default function BillPaymentConfirmation({
 
             <button
               type="button"
-              onClick={onConfirm}
-              disabled={isProcessing}
+              onClick={() => onConfirm(paymentDate)}
+              disabled={isProcessing || !paymentDate}
               className="rounded-xl bg-(--pocket-blue) px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isProcessing ? "Recording..." : "Yes, record payment"}

@@ -103,7 +103,10 @@ export async function clearNotifications() {
   };
 }
 
-export async function confirmBillPayment(notificationId: string) {
+export async function confirmBillPayment(
+  notificationId: string,
+  paymentDate: string,
+) {
   const user = await getCurrentUser();
 
   const notification = await db.notification.findFirst({
@@ -117,6 +120,12 @@ export async function confirmBillPayment(notificationId: string) {
       bill: true,
     },
   });
+
+  const selectedPaymentDate = new Date(`${paymentDate}T12:00:00`);
+
+  if (Number.isNaN(selectedPaymentDate.getTime())) {
+    throw new Error("Invalid payment date.");
+  }
 
   if (!notification) {
     throw new Error("Notification not found.");
@@ -147,6 +156,7 @@ export async function confirmBillPayment(notificationId: string) {
     accountId: notification.bill.accountId,
     userId: user.id,
     source: "MANUAL",
+    paymentDate: selectedPaymentDate,
   });
 
   await db.notification.update({

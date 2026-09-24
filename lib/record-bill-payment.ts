@@ -7,6 +7,7 @@ type RecordBillPaymentArgs = {
   accountId: string;
   userId: string;
   source?: "MANUAL" | "AUTOPAY";
+  paymentDate?: Date;
 };
 
 export async function recordBillPayment({
@@ -14,6 +15,7 @@ export async function recordBillPayment({
   accountId,
   userId,
   source = "MANUAL",
+  paymentDate,
 }: RecordBillPaymentArgs) {
   const bill = await db.bill.findFirst({
     where: {
@@ -60,7 +62,7 @@ export async function recordBillPayment({
         type: "EXPENSE",
         amount: bill.amount,
         description: bill.name,
-        date: new Date(),
+        date: paymentDate ?? new Date(),
         scheduledFor: bill.dueDate,
         category: bill.category,
         status: "COMPLETED",
