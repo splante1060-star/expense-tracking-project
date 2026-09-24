@@ -219,9 +219,10 @@ model Bill {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  accountId    String?
-  account      Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  transactions Transaction[]
+  accountId     String?
+  account       Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  transactions  Transaction[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -241,14 +242,20 @@ model Notification {
   isDismissed Boolean          @default(false)
   actionUrl   String?
 
+  billId       String?
+  bill         Bill?     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  scheduledFor DateTime?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([billId, scheduledFor, type])
   @@index([userId])
   @@index([userId, isRead])
+  @@index([billId])
   @@index([createdAt])
   @@map("notifications")
 }

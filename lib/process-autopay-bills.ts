@@ -10,7 +10,7 @@ export async function processAutoPayBills() {
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
 
-  const bills = await db.bill.findMany({
+  const dueTodayBills = await db.bill.findMany({
     where: {
       isActive: true,
       isAutoPay: true,
@@ -24,10 +24,21 @@ export async function processAutoPayBills() {
     },
   });
 
+  const overdueBills = await db.bill.findMany({
+    where: {
+      isActive: true,
+      isAutoPay: true,
+      dueDate: {
+        lt: startOfToday,
+      },
+    },
+  });
+
   let billsProcessed = 0;
   let billsFailed = 0;
+  let confirmationsCreated = 0;
 
-  for (const bill of bills) {
+  for (const bill of dueTodayBills) {
     if (!bill.accountId) {
       continue;
     }
@@ -48,8 +59,35 @@ export async function processAutoPayBills() {
     }
   }
 
+  for (const bill of overdueBills) {
+    try {
+      const result = await db.notification.createMany({
+        data: [
+          {
+            title: "Payment needs confirmation",
+            message: `${bill.name} payment of $${bill.amount.toNumber().toFixed(2)} was due ${bill.dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}. Was this payment made?`,
+            type: "ACTION_REQUIRED",
+            actionUrl: "/bills",
+            userId: bill.userId,
+            billId: bill.id,
+            scheduledFor: bill.dueDate,
+          },
+        ],
+        skipDuplicates: true,
+      });
+
+      confirmationsCreated += result.count;
+    } catch (error) {
+      console.error(
+        `Failed to create confirmation for overdue bill ${bill.id}:`,
+        error,
+      );
+    }
+  }
+
   return {
     billsProcessed,
     billsFailed,
+    confirmationsCreated,
   };
 }
