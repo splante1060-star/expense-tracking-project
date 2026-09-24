@@ -6,7 +6,7 @@ import { getPocketInsights } from "@/lib/pocket-insights";
 import DashboardHeader from "@/components/dashboard/dash-header";
 import SummaryCards from "@/components/dashboard/summary-cards";
 import MonthlySpending from "@/components/dashboard/monthly-spending";
-import UpcomingBills from "@/components/dashboard/upcoming-bills";
+import UpcomingPayments from "@/components/dashboard/upcoming-payments";
 import BudgetStatus from "@/components/dashboard/budget-status";
 import SavingsGoals from "@/components/dashboard/savings-goals";
 import RecentTransactions from "@/components/dashboard/recent-transactions";
@@ -59,14 +59,14 @@ export default async function DashboardPage({
           availableToSpend: 0,
           spentThisMonth: 0,
           monthlyBudget: 0,
-          upcomingBills: 0,
+          upcomingPayments: 0,
           currentSavings: 0,
           savingsTarget: 0,
         },
         {
           monthlySpending: [],
           totalSpent: 0,
-          upcomingBills: [],
+          upcomingPayments: [],
           totalBills: 0,
           budgetStatus: [],
           savingsGoals: [],
@@ -83,7 +83,7 @@ export default async function DashboardPage({
         availableToSpend={summary.availableToSpend}
         spentThisMonth={summary.spentThisMonth}
         monthlyBudget={summary.monthlyBudget}
-        upcomingBills={summary.upcomingBills}
+        upcomingPayments={summary.upcomingPayments}
         currentSavings={summary.currentSavings}
         savingsTarget={summary.savingsTarget}
       />
@@ -94,10 +94,7 @@ export default async function DashboardPage({
           monthLabel={monthLabel}
         />
 
-        <UpcomingBills
-          bills={details.upcomingBills}
-          totalBills={details.totalBills}
-        />
+        <UpcomingPayments payments={details.upcomingPayments} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">

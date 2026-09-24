@@ -9,7 +9,7 @@ type SummaryCardsProps = {
   availableToSpend: number;
   spentThisMonth: number;
   monthlyBudget: number;
-  upcomingBills: number;
+  upcomingPayments: number;
   currentSavings: number;
   savingsTarget: number;
 };
@@ -25,7 +25,7 @@ export default function SummaryCards({
   availableToSpend,
   spentThisMonth,
   monthlyBudget,
-  upcomingBills,
+  upcomingPayments,
   currentSavings,
   savingsTarget,
 }: SummaryCardsProps) {
@@ -100,14 +100,16 @@ export default function SummaryCards({
         </div>
       </div>
 
-      {/* UPCOMING BILLS */}
+      {/* UPCOMING PAYMENTS */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">Upcoming Bills</p>
+            <p className="text-sm font-medium text-slate-500">
+              Upcoming Payments
+            </p>
 
             <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-              {formatCurrency(upcomingBills)}
+              {formatCurrency(upcomingPayments)}
             </p>
           </div>
 

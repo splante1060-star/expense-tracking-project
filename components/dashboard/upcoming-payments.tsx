@@ -1,20 +1,26 @@
 import Link from "next/link";
-import { ArrowRight, CalendarDays, ReceiptText, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  ReceiptText,
+  RefreshCw,
+  Zap,
+} from "lucide-react";
 
 import { categoryIconMap } from "@/lib/category-icons";
 
-type UpcomingBill = {
+type UpcomingPayment = {
   id: string;
   name: string;
   amount: number;
   dueDate: Date | string;
   category: string;
   isAutoPay: boolean;
+  source: "BILL" | "RECURRING";
 };
 
-type UpcomingBillsProps = {
-  bills: UpcomingBill[];
-  totalBills: number;
+type UpcomingPaymentsProps = {
+  payments: UpcomingPayment[];
 };
 
 function formatCurrency(amount: number) {
@@ -43,11 +49,8 @@ function getDaysUntil(date: Date | string) {
   );
 }
 
-export default function UpcomingBills({
-  bills,
-  totalBills,
-}: UpcomingBillsProps) {
-  const total = bills.reduce((sum, bill) => sum + bill.amount, 0);
+export default function UpcomingPayments({ payments }: UpcomingPaymentsProps) {
+  const total = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
   return (
     <section className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -55,7 +58,7 @@ export default function UpcomingBills({
       <div className="flex items-start justify-between px-5 pt-5">
         <div>
           <h2 className="text-base font-semibold text-slate-900">
-            Upcoming Bills
+            Upcoming Payments
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
@@ -72,16 +75,16 @@ export default function UpcomingBills({
         </Link>
       </div>
 
-      {/* Bills */}
+      {/* Payments */}
       <div className="mt-4 flex-1 px-5">
-        {bills.length === 0 ? (
+        {payments.length === 0 ? (
           <div className="flex h-full min-h-48 flex-col items-center justify-center text-center">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-(--pocket-orange-light) text-(--pocket-orange)">
               <CalendarDays size={20} />
             </div>
 
             <p className="mt-3 text-sm font-medium text-slate-700">
-              No upcoming bills
+              No upcoming payments
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
@@ -90,18 +93,18 @@ export default function UpcomingBills({
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {bills.map((bill) => {
+            {payments.map((payment) => {
               const Icon =
                 categoryIconMap[
-                  bill.category as keyof typeof categoryIconMap
+                  payment.category as keyof typeof categoryIconMap
                 ] ?? ReceiptText;
 
-              const dueDate = new Date(bill.dueDate);
-              const daysUntil = getDaysUntil(bill.dueDate);
+              const dueDate = new Date(payment.dueDate);
+              const daysUntil = getDaysUntil(payment.dueDate);
 
               return (
                 <div
-                  key={bill.id}
+                  key={`${payment.source}-${payment.id}`}
                   className="grid grid-cols-[48px_1fr_auto] items-center gap-3 py-3.5"
                 >
                   {/* Date */}
@@ -117,7 +120,7 @@ export default function UpcomingBills({
                     </p>
                   </div>
 
-                  {/* Bill */}
+                  {/* Payment */}
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-(--pocket-orange-light) text-(--pocket-orange)">
                       <Icon size={17} strokeWidth={1.8} />
@@ -125,19 +128,30 @@ export default function UpcomingBills({
 
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-slate-900">
-                        {bill.name}
+                        {payment.name}
                       </p>
 
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
-                        <span>{formatCategory(bill.category)}</span>
+                        <span>{formatCategory(payment.category)}</span>
 
-                        {bill.isAutoPay && (
+                        {payment.isAutoPay && (
                           <>
                             <span>•</span>
 
-                            <span className="inline-flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1 text-yellow-500">
                               <Zap size={10} />
                               AutoPay
+                            </span>
+                          </>
+                        )}
+
+                        {payment.source === "RECURRING" && (
+                          <>
+                            <span>•</span>
+
+                            <span className="inline-flex items-center gap-1 text-(--pocket-purple)">
+                              <RefreshCw size={10} />
+                              Recurring
                             </span>
                           </>
                         )}
@@ -148,7 +162,7 @@ export default function UpcomingBills({
                   {/* Amount */}
                   <div className="text-right">
                     <p className="text-sm font-semibold text-slate-900">
-                      {formatCurrency(bill.amount)}
+                      {formatCurrency(payment.amount)}
                     </p>
 
                     {daysUntil >= 0 && daysUntil <= 7 && (
@@ -169,11 +183,11 @@ export default function UpcomingBills({
       </div>
 
       {/* Footer */}
-      {bills.length > 0 && (
+      {payments.length > 0 && (
         <div className="mx-5 mb-5 mt-2 flex items-center justify-between rounded-xl bg-(--pocket-orange-light) px-4 py-3">
           <span className="text-xs font-medium text-(--pocket-orange-dark)">
-            {bills.length} upcoming{" "}
-            {bills.length === 1 ? "payment" : "payments"}
+            {payments.length} upcoming{" "}
+            {payments.length === 1 ? "payment" : "payments"}
           </span>
 
           <div className="text-right">

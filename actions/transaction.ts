@@ -58,8 +58,13 @@ export async function createTransaction(data: CreateTransactionData) {
 
   const balanceChange = getBalanceChange(account.type, data.type, amount);
 
-  const transaction = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const transactionDate = new Date(`${data.date}T12:00:00`);
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    const isFutureRecurring = data.isRecurring && transactionDate > today;
 
     let recurringTransactionId: string | null = null;
 
@@ -78,16 +83,26 @@ export async function createTransaction(data: CreateTransactionData) {
           category: data.category,
           interval: data.recurringInterval,
           anchorDay: transactionDate.getDate(),
-          nextRecurringDate: getNextRecurringDate(
-            transactionDate,
-            data.recurringInterval,
-          ),
+          nextRecurringDate: isFutureRecurring
+            ? transactionDate
+            : getNextRecurringDate(
+                transactionDate,
+                data.recurringInterval,
+                transactionDate.getDate(),
+              ),
           userId: user.id,
           accountId: data.accountId,
         },
       });
 
       recurringTransactionId = recurringTransaction.id;
+    }
+
+    if (isFutureRecurring) {
+      return {
+        transactionId: null,
+        recurringTransactionId,
+      };
     }
 
     const newTransaction = await tx.transaction.create({
@@ -114,7 +129,10 @@ export async function createTransaction(data: CreateTransactionData) {
       },
     });
 
-    return newTransaction;
+    return {
+      transactionId: newTransaction.id,
+      recurringTransactionId,
+    };
   });
 
   revalidatePath("/dashboard");
@@ -123,7 +141,8 @@ export async function createTransaction(data: CreateTransactionData) {
 
   return {
     success: true,
-    transactionId: transaction.id,
+    transactionId: result.transactionId,
+    recurringTransactionId: result.recurringTransactionId,
   };
 }
 
