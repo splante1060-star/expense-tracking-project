@@ -1,17 +1,19 @@
 "use client";
 
-import Link from "next/link";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 
 type DashboardHeaderProps = {
   firstName: string;
   selectedMonth: Date;
+  addTransactionAction: ReactNode;
 };
 
 export default function DashboardHeader({
   firstName,
   selectedMonth,
+  addTransactionAction,
 }: DashboardHeaderProps) {
   const router = useRouter();
 
@@ -51,13 +53,7 @@ export default function DashboardHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href="/transaction/create"
-          className="group inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-blue) px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--pocket-blue-dark)"
-        >
-          <Plus size={16} />
-          Add Transaction
-        </Link>
+        {addTransactionAction}
 
         <div className="flex h-9 items-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm">
           <button

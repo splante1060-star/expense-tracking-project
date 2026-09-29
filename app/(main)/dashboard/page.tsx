@@ -2,7 +2,9 @@ import { currentUser } from "@clerk/nextjs/server";
 import { checkUser } from "@/lib/checkUser";
 import { getDashboardSummary, getDashboardDetails } from "@/lib/dashboard-data";
 import { getPocketInsights } from "@/lib/pocket-insights";
+import { db } from "@/lib/prisma";
 
+import AddTransactionButton from "@/components/dashboard/add-transaction-button";
 import DashboardHeader from "@/components/dashboard/dash-header";
 import SummaryCards from "@/components/dashboard/summary-cards";
 import MonthlySpending from "@/components/dashboard/monthly-spending";
@@ -38,6 +40,30 @@ export default async function DashboardPage({
   });
 
   const firstName = user?.firstName ?? "there";
+
+  const accounts = dbUser
+    ? await db.account.findMany({
+        where: {
+          userId: dbUser.id,
+        },
+        orderBy: [
+          {
+            isDefault: "desc",
+          },
+          {
+            createdAt: "asc",
+          },
+        ],
+      })
+    : [];
+
+  const serializedAccounts = accounts.map((account) => ({
+    id: account.id,
+    name: account.name,
+    type: account.type,
+    balance: account.balance.toNumber(),
+    isDefault: account.isDefault,
+  }));
 
   const [summary, details, insights] = dbUser
     ? await Promise.all([
@@ -77,7 +103,13 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <DashboardHeader firstName={firstName} selectedMonth={selectedMonth} />
+      <DashboardHeader
+        firstName={firstName}
+        selectedMonth={selectedMonth}
+        addTransactionAction={
+          <AddTransactionButton accounts={serializedAccounts} />
+        }
+      />
 
       <SummaryCards
         availableToSpend={summary.availableToSpend}

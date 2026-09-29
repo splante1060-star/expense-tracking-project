@@ -2,7 +2,7 @@ import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "./ui/button";
-import { LayoutDashboard, PenBox } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { checkUser } from "@/lib/checkUser";
 
 const Header = async () => {
@@ -43,18 +43,6 @@ const Header = async () => {
                 >
                   <LayoutDashboard size={18} />
                   <span className="hidden md:inline">Dashboard</span>
-                </Button>
-              </Link>
-              <Link
-                href={"/transaction/create"}
-                className="text-gray-600 hover:text-(--pocket-blue) flex items-center gap-2"
-              >
-                <Button
-                  variant="outline"
-                  className="hover:border-(--pocket-blue-soft) hover:bg-(--pocket-blue-light) hover:text-(--pocket-blue)"
-                >
-                  <PenBox size={18} />
-                  <span className="hidden md:inline">Add Transaction</span>
                 </Button>
               </Link>
               <UserButton />
