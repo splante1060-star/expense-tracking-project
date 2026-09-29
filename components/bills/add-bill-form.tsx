@@ -107,7 +107,7 @@ export default function AddBillForm({
     register,
     handleSubmit,
     watch,
-    reset,
+    setValue,
     formState: { errors },
   } = useForm<BillFormData>({
     resolver: zodResolver(billSchema),
