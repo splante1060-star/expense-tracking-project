@@ -16,6 +16,7 @@ type CreateTransactionData = {
   amount: string | number;
   description?: string;
   date: string;
+  time: string;
   category: CategoryType;
   accountId: string;
   isRecurring?: boolean;
@@ -59,7 +60,7 @@ export async function createTransaction(data: CreateTransactionData) {
   const balanceChange = getBalanceChange(account.type, data.type, amount);
 
   const result = await db.$transaction(async (tx) => {
-    const transactionDate = new Date(`${data.date}T12:00:00`);
+    const transactionDate = new Date(`${data.date}T${data.time}:00`);
 
     const today = new Date();
     today.setHours(23, 59, 59, 999);
@@ -154,6 +155,7 @@ type UpdateTransactionData = {
   category: CategoryType;
   accountId: string;
   date: string;
+  time: string;
   isRecurring?: boolean;
   recurringInterval?: RecurringInterval;
   updateScope?: "THIS_ONLY" | "THIS_AND_FUTURE";
@@ -239,7 +241,7 @@ export async function updateTransaction(data: UpdateTransactionData) {
       },
     });
 
-    const transactionDate = new Date(`${data.date}T12:00:00`);
+    const transactionDate = new Date(`${data.date}T${data.time}:00`);
 
     const updatedTransaction = await tx.transaction.update({
       where: {

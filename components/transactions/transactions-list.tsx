@@ -714,7 +714,7 @@ Account balances will be updated. This cannot be undone.`;
                     </p>
 
                     <p className="mt-0.5 text-xs text-slate-400">
-                      {formatTime(transaction.createdAt)}
+                      {formatTime(transaction.date)}
                     </p>
                   </div>
 

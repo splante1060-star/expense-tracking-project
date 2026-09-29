@@ -9,6 +9,7 @@ import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
 import { transactionSchema } from "@/lib/schema";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import DatePicker from "@/components/ui/date-picker";
+import TimePicker from "@/components/ui/time-picker";
 import useFetch from "@/hooks/use-fetch";
 import { useState } from "react";
 import {
@@ -37,6 +38,7 @@ type TransactionFormProps = {
     amount: string;
     description: string;
     date: string;
+    time: string;
     category:
       | "GROCERIES"
       | "DINING"
@@ -83,6 +85,15 @@ const getToday = () => {
   return `${year}-${month}-${day}`;
 };
 
+const getCurrentTime = () => {
+  const now = new Date();
+
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+};
+
 export default function TransactionForm({
   accounts,
   transaction,
@@ -109,7 +120,8 @@ export default function TransactionForm({
       type: transaction?.type ?? "EXPENSE",
       amount: transaction?.amount ?? "",
       description: transaction?.description ?? "",
-      date: transaction?.date ?? new Date().toISOString().slice(0, 10),
+      date: transaction?.date ?? getToday(),
+      time: transaction?.time ?? getCurrentTime(),
       category: transaction?.category ?? "GROCERIES",
       accountId:
         transaction?.accountId ??
@@ -131,6 +143,7 @@ export default function TransactionForm({
   const transactionType = watch("type");
   const category = watch("category");
   const date = watch("date");
+  const time = watch("time");
   const isRecurring = watch("isRecurring");
 
   const handleUpdate = async (
@@ -147,6 +160,7 @@ export default function TransactionForm({
       category: data.category,
       accountId: data.accountId,
       date: data.date,
+      time: data.time,
       isRecurring: data.isRecurring,
       recurringInterval: data.recurringInterval,
       updateScope,
@@ -318,28 +332,60 @@ export default function TransactionForm({
         </div>
       </div>
 
-      {/* DATE */}
-      <div className="mt-5">
-        <label
-          htmlFor="date"
-          className="mb-1.5 block text-sm font-medium text-slate-700"
-        >
-          Date
-        </label>
+      {/* DATE + TIME */}
+      <div
+        className={`mt-5 grid gap-4 ${
+          transaction ? "sm:grid-cols-2" : "grid-cols-1"
+        }`}
+      >
+        <div>
+          <label
+            htmlFor="date"
+            className="mb-1.5 block text-sm font-medium text-slate-700"
+          >
+            Date
+          </label>
 
-        <DatePicker
-          value={date}
-          onChange={(value) => {
-            setValue("date", value, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-          }}
-          disabled={Boolean(transaction)}
-        />
+          <DatePicker
+            value={date}
+            onChange={(value) => {
+              setValue("date", value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            disabled={Boolean(transaction)}
+          />
 
-        {errors.date && (
-          <p className="mt-1.5 text-xs text-red-500">{errors.date.message}</p>
+          {errors.date && (
+            <p className="mt-1.5 text-xs text-red-500">{errors.date.message}</p>
+          )}
+        </div>
+        {transaction && (
+          <div>
+            <label
+              htmlFor="time"
+              className="mb-1.5 block text-sm font-medium text-slate-700"
+            >
+              Time
+            </label>
+
+            <TimePicker
+              value={time}
+              onChange={(value) => {
+                setValue("time", value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+            />
+
+            {errors.time && (
+              <p className="mt-1.5 text-xs text-red-500">
+                {errors.time.message}
+              </p>
+            )}
+          </div>
         )}
       </div>
 

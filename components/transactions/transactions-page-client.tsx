@@ -89,6 +89,15 @@ export default function TransactionsPageClient({
     return `${year}-${month}-${day}`;
   };
 
+  const formatTransactionTime = (value: Date) => {
+    const date = new Date(value);
+
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${hours}:${minutes}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -140,6 +149,7 @@ export default function TransactionsPageClient({
                     amount: editingTransaction.amount.toString(),
                     description: editingTransaction.description ?? "",
                     date: formatTransactionDate(editingTransaction.date),
+                    time: formatTransactionTime(editingTransaction.date),
                     category: editingTransaction.category,
                     accountId: editingTransaction.account.id,
                     recurringTransaction:
