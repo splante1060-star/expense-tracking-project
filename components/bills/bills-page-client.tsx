@@ -20,6 +20,7 @@ import type {
   RecurringInterval,
 } from "@/lib/generated/prisma/client";
 import AddBillForm from "@/components/bills/add-bill-form";
+import FormModal from "../ui/form-modal";
 import { deleteBill, markBillAsPaid } from "@/actions/bill";
 import { categoryIconMap } from "@/lib/category-icons";
 
@@ -233,13 +234,13 @@ export default function BillsPageClient({
         </div>
       )}
 
-      {showForm && (
+      <FormModal open={showForm} onClose={handleCloseForm} size="lg">
         <AddBillForm
           accounts={accounts}
           bill={editingBill}
           onClose={handleCloseForm}
         />
-      )}
+      </FormModal>
 
       {payingBill && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4">

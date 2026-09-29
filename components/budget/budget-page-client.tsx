@@ -15,6 +15,7 @@ import {
 import { deleteBudget } from "@/actions/budget";
 import { categoryIconMap } from "@/lib/category-icons";
 import AddBudgetForm from "./add-budget-form";
+import FormModal from "../ui/form-modal";
 
 type Budget = {
   id: string;
@@ -91,6 +92,11 @@ export default function BudgetPageClient({ budgets }: BudgetPageClientProps) {
     router.refresh();
   };
 
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingBudget(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -109,7 +115,7 @@ export default function BudgetPageClient({ budgets }: BudgetPageClientProps) {
           type="button"
           onClick={() => {
             setEditingBudget(null);
-            setShowForm((current) => !current);
+            setShowForm(true);
           }}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-blue) px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--pocket-blue-dark)"
         >
@@ -118,16 +124,13 @@ export default function BudgetPageClient({ budgets }: BudgetPageClientProps) {
         </button>
       </div>
 
-      {showForm && (
+      <FormModal open={showForm} onClose={handleCloseForm} size="sm">
         <AddBudgetForm
           budgets={budgets}
           budget={editingBudget}
-          onClose={() => {
-            setShowForm(false);
-            setEditingBudget(null);
-          }}
+          onClose={handleCloseForm}
         />
-      )}
+      </FormModal>
 
       {/* OVERVIEW */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

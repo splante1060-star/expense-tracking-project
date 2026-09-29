@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/prisma";
-import TransactionsList from "@/components/transactions/transactions-list";
-import { RecurringInterval } from "@/lib/generated/prisma/enums";
+import TransactionsPageClient from "@/components/transactions/transactions-page-client";
 
 export default async function TransactionsPage() {
   const { userId } = await auth();
@@ -46,6 +44,27 @@ export default async function TransactionsPage() {
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
 
+  const accounts = await db.account.findMany({
+    where: {
+      userId: user.id,
+    },
+    orderBy: [
+      {
+        isDefault: "desc",
+      },
+      {
+        createdAt: "asc",
+      },
+    ],
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      balance: true,
+      isDefault: true,
+    },
+  });
+
   const serializedTransactions = transactions.map((transaction) => ({
     id: transaction.id,
     description: transaction.description,
@@ -72,28 +91,15 @@ export default async function TransactionsPage() {
     },
   }));
 
+  const serializedAccounts = accounts.map((account) => ({
+    ...account,
+    balance: account.balance.toNumber(),
+  }));
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">
-            Transactions
-          </h1>
-
-          <p className="mt-1 text-sm text-slate-600">
-            View and manage your spending and income.
-          </p>
-        </div>
-
-        <Link
-          href="/transaction/create"
-          className="inline-flex h-10 items-center justify-center rounded-full bg-(--pocket-blue) px-5 text-sm font-semibold text-white transition-colors hover:bg-(--pocket-blue-dark)"
-        >
-          + Add Transaction
-        </Link>
-      </div>
-
-      <TransactionsList transactions={serializedTransactions} />
-    </div>
+    <TransactionsPageClient
+      transactions={serializedTransactions}
+      accounts={serializedAccounts}
+    />
   );
 }

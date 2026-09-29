@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarDays, X } from "lucide-react";
 
 import { savingsGoalSchema } from "@/lib/schema";
 import { createSavingsGoal, updateSavingsGoal } from "@/actions/savings-goal";
@@ -97,28 +96,17 @@ export default function AddSavingsGoalForm({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">
-            {goal ? "Edit Savings Goal" : "Add Savings Goal"}
-          </h2>
+    <div className="p-6">
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-slate-900">
+          {goal ? "Edit Savings Goal" : "Add Savings Goal"}
+        </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            {goal
-              ? "Update the details for this savings goal."
-              : "Give your savings something to work toward."}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close form"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-        >
-          <X size={17} />
-        </button>
+        <p className="mt-1 text-sm text-slate-500">
+          {goal
+            ? "Update the details for this savings goal."
+            : "Give your savings something to work toward."}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -228,21 +216,15 @@ export default function AddSavingsGoalForm({
             <span className="ml-1 font-normal text-slate-400">Optional</span>
           </label>
 
-          <div className="relative">
-            <CalendarDays
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <DatePicker
-              value={targetDate ?? ""}
-              onChange={(value) => {
-                setValue("targetDate", value, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
-              }}
-            />
-          </div>
+          <DatePicker
+            value={targetDate ?? ""}
+            onChange={(value) => {
+              setValue("targetDate", value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+          />
 
           {errors.targetDate && (
             <p className="mt-1.5 text-xs text-red-500">

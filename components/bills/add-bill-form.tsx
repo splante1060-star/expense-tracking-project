@@ -160,7 +160,7 @@ export default function AddBillForm({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="p-6">
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-slate-900">
           {isEditing ? "Edit Bill" : "Add Bill"}
@@ -172,7 +172,6 @@ export default function AddBillForm({
             : "Add an upcoming bill so Pocket can help you stay ahead."}
         </p>
       </div>
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>

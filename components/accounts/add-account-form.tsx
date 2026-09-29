@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X } from "lucide-react";
 
 import { accountSchema } from "@/lib/schema";
 import { createAccount, updateAccount } from "@/actions/dashboard";
@@ -84,28 +83,17 @@ export default function AddAccountForm({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">
-            {account ? "Edit Account" : "Add Account"}
-          </h2>
+    <div className="p-6">
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-slate-900">
+          {account ? "Edit Account" : "Add Account"}
+        </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            {account
-              ? "Update the details for this account."
-              : "Add an account to start tracking your money."}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close form"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-        >
-          <X size={17} />
-        </button>
+        <p className="mt-1 text-sm text-slate-500">
+          {account
+            ? "Update the details for this account."
+            : "Add an account to start tracking your money."}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

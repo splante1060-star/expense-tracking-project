@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import AddSavingsGoalForm from "./add-savings-goal-form";
 import AddFundsForm from "./add-funds-form";
 import GoalIcon from "./goal-icon";
+import FormModal from "../ui/form-modal";
 
 type SavingsGoal = {
   id: string;
@@ -74,6 +75,11 @@ export default function GoalsPageClient({
     router.refresh();
   };
 
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingGoal(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -93,7 +99,7 @@ export default function GoalsPageClient({
           onClick={() => {
             setEditingGoal(null);
             setFundingGoalId(null);
-            setShowForm((current) => !current);
+            setShowForm(true);
           }}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-green) px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--pocket-green-dark)"
         >
@@ -102,15 +108,10 @@ export default function GoalsPageClient({
         </button>
       </div>
 
-      {showForm && (
-        <AddSavingsGoalForm
-          goal={editingGoal}
-          onClose={() => {
-            setShowForm(false);
-            setEditingGoal(null);
-          }}
-        />
-      )}
+      <FormModal open={showForm} onClose={handleCloseForm} size="md">
+        <AddSavingsGoalForm goal={editingGoal} onClose={handleCloseForm} />
+      </FormModal>
+
       {/* OVERVIEW */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">

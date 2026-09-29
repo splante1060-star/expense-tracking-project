@@ -4,12 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  CalendarDays,
-  Loader2,
-} from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
 
 import { transactionSchema } from "@/lib/schema";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
@@ -62,6 +57,7 @@ type TransactionFormProps = {
       isActive: boolean;
     } | null;
   };
+  onClose?: () => void;
 };
 
 const categories = [
@@ -90,6 +86,7 @@ const getToday = () => {
 export default function TransactionForm({
   accounts,
   transaction,
+  onClose,
 }: TransactionFormProps) {
   const router = useRouter();
 
@@ -155,8 +152,13 @@ export default function TransactionForm({
       updateScope,
     });
 
-    router.push("/transactions");
-    router.refresh();
+    if (onClose) {
+      onClose();
+      router.refresh();
+    } else {
+      router.push("/transactions");
+      router.refresh();
+    }
   };
 
   const onSubmit = async (data: TransactionFormData) => {
@@ -173,15 +175,17 @@ export default function TransactionForm({
 
     await createTransaction(data);
 
-    router.push("/transactions");
-    router.refresh();
+    if (onClose) {
+      onClose();
+      router.refresh();
+    } else {
+      router.push("/transactions");
+      router.refresh();
+    }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
+    <form onSubmit={handleSubmit(onSubmit)}>
       {/* TRANSACTION TYPE */}
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -323,23 +327,16 @@ export default function TransactionForm({
           Date
         </label>
 
-        <div className="relative">
-          <CalendarDays
-            size={16}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-
-          <DatePicker
-            value={date}
-            onChange={(value) => {
-              setValue("date", value, {
-                shouldDirty: true,
-                shouldValidate: true,
-              });
-            }}
-            disabled={Boolean(transaction)}
-          />
-        </div>
+        <DatePicker
+          value={date}
+          onChange={(value) => {
+            setValue("date", value, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+          }}
+          disabled={Boolean(transaction)}
+        />
 
         {errors.date && (
           <p className="mt-1.5 text-xs text-red-500">{errors.date.message}</p>
@@ -426,7 +423,13 @@ export default function TransactionForm({
       <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-5">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            if (onClose) {
+              onClose();
+            } else {
+              router.back();
+            }
+          }}
           disabled={loading}
           className="h-10 rounded-full px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-50"
         >

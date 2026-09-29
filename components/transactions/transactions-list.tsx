@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -28,7 +27,19 @@ import {
 type TransactionItem = {
   id: string;
   description: string | null;
-  category: string;
+  category:
+    | "GROCERIES"
+    | "DINING"
+    | "SHOPPING"
+    | "ENTERTAINMENT"
+    | "TRANSPORTATION"
+    | "TRAVEL"
+    | "HOUSING"
+    | "UTILITIES"
+    | "LOANS"
+    | "INSURANCE"
+    | "INCOME"
+    | "OTHER";
   type: "INCOME" | "EXPENSE";
   amount: number;
   date: Date;
@@ -50,6 +61,7 @@ type TransactionItem = {
 
 type TransactionsListProps = {
   transactions: TransactionItem[];
+  onEditTransaction?: (transaction: TransactionItem) => void;
 };
 
 type TypeFilter = "ALL" | "INCOME" | "EXPENSE";
@@ -92,6 +104,7 @@ const formatMonth = (value: string) => {
 
 export default function TransactionsList({
   transactions,
+  onEditTransaction,
 }: TransactionsListProps) {
   const router = useRouter();
 
@@ -730,13 +743,17 @@ Account balances will be updated. This cannot be undone.`;
 
                     {openMenu === transaction.id && (
                       <div className="absolute right-0 top-9 z-50 w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
-                        <Link
-                          href={`/transaction/${transaction.id}/edit`}
-                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onEditTransaction?.(transaction);
+                            setOpenMenu(null);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                         >
                           <Pencil size={15} />
                           Edit
-                        </Link>
+                        </button>
 
                         <button
                           type="button"

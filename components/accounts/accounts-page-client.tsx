@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MoreVertical, Pencil, Plus, Trash2, WalletCards } from "lucide-react";
 import AddAccountForm from "./add-account-form";
+import FormModal from "../ui/form-modal";
 import { deleteAccount } from "@/actions/dashboard";
 
 type Account = {
@@ -67,6 +68,11 @@ export default function AccountsPageClient({
     }
   };
 
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingAccount(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -84,7 +90,7 @@ export default function AccountsPageClient({
           type="button"
           onClick={() => {
             setEditingAccount(null);
-            setShowForm((current) => !current);
+            setShowForm(true);
           }}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-blue) px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--pocket-blue-dark)"
         >
@@ -99,15 +105,10 @@ export default function AccountsPageClient({
         </div>
       )}
 
-      {showForm && (
-        <AddAccountForm
-          account={editingAccount}
-          onClose={() => {
-            setShowForm(false);
-            setEditingAccount(null);
-          }}
-        />
-      )}
+      <FormModal open={showForm} onClose={handleCloseForm} size="md">
+        <AddAccountForm account={editingAccount} onClose={handleCloseForm} />
+      </FormModal>
+
       {accounts.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-(--pocket-blue-light) text-(--pocket-blue)">
@@ -125,7 +126,10 @@ export default function AccountsPageClient({
 
           <button
             type="button"
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setEditingAccount(null);
+              setShowForm(true);
+            }}
             className="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-(--pocket-blue) px-5 text-sm font-semibold text-white transition-colors hover:bg-(--pocket-blue-dark)"
           >
             <Plus size={16} />
