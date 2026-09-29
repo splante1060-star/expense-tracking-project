@@ -66,6 +66,7 @@ export default function DatePicker({
   disabled = false,
 }: DatePickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [openUpward, setOpenUpward] = useState(false);
 
   const selectedDate = parseDate(value);
 
@@ -142,21 +143,35 @@ export default function DatePicker({
     selectDate(new Date());
   };
 
+  const toggleCalendar = () => {
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+
+    setViewDate(
+      new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
+    );
+
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      setOpenUpward(spaceBelow < 260 && spaceAbove > spaceBelow);
+    }
+
+    setIsOpen(true);
+  };
+
   return (
     <div ref={containerRef} className="relative">
       {/* Input */}
       <button
         type="button"
         disabled={disabled}
-        onClick={() => {
-          if (disabled) return;
-
-          setViewDate(
-            new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
-          );
-
-          setIsOpen((current) => !current);
-        }}
+        onClick={toggleCalendar}
         className={`flex h-11 w-full items-center gap-2.5 rounded-xl border px-3.5 text-left text-sm outline-none transition-colors ${
           disabled
             ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500"
@@ -179,7 +194,11 @@ export default function DatePicker({
 
       {/* Calendar */}
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+        <div
+          className={`absolute left-0 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl ${
+            openUpward ? "bottom-full mb-2" : "top-full mt-2"
+          }`}
+        >
           {/* MONTH HEADER */}
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-slate-900">
@@ -206,7 +225,6 @@ export default function DatePicker({
               </button>
             </div>
           </div>
-
           {/* Week Days */}
           <div className="mt-4 grid grid-cols-7">
             {weekDays.map((day, index) => (
@@ -218,7 +236,6 @@ export default function DatePicker({
               </div>
             ))}
           </div>
-
           {/* Days */}
           <div className="grid grid-cols-7">
             {days.map((date) => {
@@ -250,7 +267,6 @@ export default function DatePicker({
               );
             })}
           </div>
-
           {/* FOOTER */}
           <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
             <button

@@ -11,6 +11,7 @@ import type {
 } from "@/lib/generated/prisma/client";
 import { billSchema, type BillFormData } from "@/lib/schema";
 import { createBill, updateBill } from "@/actions/bill";
+import DatePicker from "@/components/ui/date-picker";
 import useFetch from "@/hooks/use-fetch";
 
 type Account = {
@@ -127,6 +128,7 @@ export default function AddBillForm({
 
   const isRecurring = watch("isRecurring");
   const isAutoPay = watch("isAutoPay");
+  const dueDate = watch("dueDate");
 
   const isEditing = Boolean(bill);
   const loading = creating || updating;
@@ -247,10 +249,14 @@ export default function AddBillForm({
               Due date
             </label>
 
-            <input
-              {...register("dueDate")}
-              type="date"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-(--pocket-blue) focus:ring-2 focus:ring-(--pocket-blue-light)"
+            <DatePicker
+              value={dueDate ?? ""}
+              onChange={(value) => {
+                setValue("dueDate", value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
             />
 
             {errors.dueDate && (

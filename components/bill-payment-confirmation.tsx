@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays, CircleAlert, X } from "lucide-react";
+import DatePicker from "@/components/ui/date-picker";
 
 type BillPaymentConfirmationProps = {
   isOpen: boolean;
@@ -55,7 +56,7 @@ export default function BillPaymentConfirmation({
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/30 px-4">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div className="w-full max-w-md overflow-visible rounded-2xl border border-slate-200 bg-white shadow-2xl">
         <div className="flex items-start justify-between px-6 pt-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-(--pocket-orange-light) text-(--pocket-orange-dark)">
             <CircleAlert size={20} />
@@ -100,10 +101,7 @@ export default function BillPaymentConfirmation({
           </div>
 
           <div className="mt-4">
-            <label
-              htmlFor="payment-date"
-              className="mb-2 block text-sm font-semibold text-slate-700"
-            >
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Payment date
             </label>
 
@@ -113,13 +111,10 @@ export default function BillPaymentConfirmation({
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
 
-              <input
-                id="payment-date"
-                type="date"
+              <DatePicker
                 value={paymentDate}
-                onChange={(event) => setPaymentDate(event.target.value)}
+                onChange={setPaymentDate}
                 disabled={isProcessing}
-                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none transition-colors focus:border-(--pocket-blue) disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
 

@@ -9,6 +9,7 @@ import { CalendarDays, X } from "lucide-react";
 import { savingsGoalSchema } from "@/lib/schema";
 import { createSavingsGoal, updateSavingsGoal } from "@/actions/savings-goal";
 import { goalIcons } from "@/lib/goal-icons";
+import DatePicker from "@/components/ui/date-picker";
 import useFetch from "@/hooks/use-fetch";
 
 type SavingsGoalFormData = z.input<typeof savingsGoalSchema>;
@@ -52,6 +53,7 @@ export default function AddSavingsGoalForm({
   });
 
   const selectedIcon = watch("icon");
+  const targetDate = watch("targetDate");
 
   const {
     fn: createSavingsGoalFn,
@@ -221,10 +223,7 @@ export default function AddSavingsGoalForm({
 
         {/* TARGET DATE */}
         <div>
-          <label
-            htmlFor="targetDate"
-            className="mb-1.5 block text-sm font-medium text-slate-700"
-          >
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Target Date
             <span className="ml-1 font-normal text-slate-400">Optional</span>
           </label>
@@ -234,12 +233,14 @@ export default function AddSavingsGoalForm({
               size={16}
               className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
             />
-
-            <input
-              id="targetDate"
-              type="date"
-              {...register("targetDate")}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white pr-3.5 pl-10 text-sm text-slate-900 outline-none transition-colors focus:border-(--pocket-blue)"
+            <DatePicker
+              value={targetDate ?? ""}
+              onChange={(value) => {
+                setValue("targetDate", value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
             />
           </div>
 

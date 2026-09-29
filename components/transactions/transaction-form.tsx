@@ -13,6 +13,7 @@ import {
 
 import { transactionSchema } from "@/lib/schema";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
+import DatePicker from "@/components/ui/date-picker";
 import useFetch from "@/hooks/use-fetch";
 import { useState } from "react";
 import {
@@ -132,6 +133,7 @@ export default function TransactionForm({
 
   const transactionType = watch("type");
   const category = watch("category");
+  const date = watch("date");
   const isRecurring = watch("isRecurring");
 
   const handleUpdate = async (
@@ -327,15 +329,15 @@ export default function TransactionForm({
             className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
           />
 
-          <input
-            type="date"
-            {...register("date")}
-            // disabled={Boolean(transaction)}
-            className={`w-full rounded-xl border py-2.5 pr-3 pl-10 text-sm outline-none ${
-              transaction
-                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500"
-                : "border-slate-200 bg-white text-slate-900 focus:border-(--pocket-blue)"
-            }`}
+          <DatePicker
+            value={date}
+            onChange={(value) => {
+              setValue("date", value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            disabled={Boolean(transaction)}
           />
         </div>
 
