@@ -63,6 +63,10 @@ export default async function EditTransactionPage({
   const year = transaction.date.getFullYear();
   const month = String(transaction.date.getMonth() + 1).padStart(2, "0");
   const day = String(transaction.date.getDate()).padStart(2, "0");
+  const hours = String(transaction.date.getHours()).padStart(2, "0");
+  const minutes = String(transaction.date.getMinutes()).padStart(2, "0");
+
+  const formattedTime = `${hours}:${minutes}`;
 
   const transactionDate = `${year}-${month}-${day}`;
 
@@ -89,6 +93,7 @@ export default async function EditTransactionPage({
           amount: transaction.amount.toString(),
           description: transaction.description ?? "",
           date: transactionDate,
+          time: formattedTime,
           category: transaction.category,
           accountId: transaction.accountId,
           recurringTransaction: transaction.recurringTransaction
