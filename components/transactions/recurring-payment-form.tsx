@@ -51,6 +51,7 @@ type RecurringPayment = {
 type RecurringPaymentFormProps = {
   accounts: Account[];
   recurringPayment: RecurringPayment;
+  onClose?: () => void;
 };
 
 const categories = [
@@ -71,6 +72,7 @@ const categories = [
 export default function RecurringPaymentForm({
   accounts,
   recurringPayment,
+  onClose,
 }: RecurringPaymentFormProps) {
   const router = useRouter();
 
@@ -106,8 +108,13 @@ export default function RecurringPaymentForm({
         interval,
       });
 
-      router.push("/dashboard");
-      router.refresh();
+      if (onClose) {
+        onClose();
+        router.refresh();
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch (error) {
       setError(
         error instanceof Error
@@ -128,8 +135,13 @@ export default function RecurringPaymentForm({
 
       setShowStopDialog(false);
 
-      router.push("/dashboard");
-      router.refresh();
+      if (onClose) {
+        onClose();
+        router.refresh();
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch (error) {
       setError(
         error instanceof Error
@@ -147,7 +159,6 @@ export default function RecurringPaymentForm({
         event.preventDefault();
         await handleSave();
       }}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
     >
       {/* Type */}
       <div>
@@ -363,7 +374,13 @@ export default function RecurringPaymentForm({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              if (onClose) {
+                onClose();
+              } else {
+                router.back();
+              }
+            }}
             className="h-10 rounded-full px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
           >
             Cancel
