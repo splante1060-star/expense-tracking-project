@@ -50,7 +50,7 @@ The primary goals of Pocket AI are to:
 - Documented the architecture overview in [architecture.md](architecture.md).
 - Completed the initial OpenAI API connection test with `scripts/test_openai.py`, run locally using Python in the VS Code terminal.
 - Completed Week 1 deliverable 4 as a prompt refinement experiment: compared the initial Pocket response with revised instructions for personality, factual scope, and data access boundaries.
-- The preliminary general prompt script (`scripts/test_prompt_general.py`) was removed because it is no longer in use; `scripts/test_openai.py` is the active fixed-prompt test.
+- `scripts/test_openai.py` is the active fixed-prompt test.
 - The successful request demonstrates API connectivity. Next.js integration, the chat interface, Clerk protection for the AI endpoint, and financial tools remain planned.
 - See [evaluation.md](evaluation.md) for the verification approach and [results.md](results.md) for the observed response.
 
