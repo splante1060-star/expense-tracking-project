@@ -44,6 +44,14 @@ The primary goals of Pocket AI are to:
 
 ---
 
+## Current Progress — November 2, 2026
+
+- Completed Week 1 deliverable 1: AI and financial privacy research.
+- Documented the architecture overview in [architecture.md](architecture.md).
+- Completed the initial OpenAI API connection test with `scripts/test_openai.py`, run locally using Python in the VS Code terminal.
+- The successful request demonstrates API connectivity. Next.js integration, the chat interface, Clerk protection for the AI endpoint, and financial tools remain planned.
+- See [evaluation.md](evaluation.md) for the verification approach and [results.md](results.md) for the observed response.
+
 ## Planned Architecture
 
 Pocket AI will build on Pocket's existing application and database rather than creating a separate application.
@@ -82,7 +90,10 @@ The planned organization is:
 Pocket/
 │
 ├── app/
-│   └── ai/                    # Pocket AI interface
+│   ├── (main)/
+│   │   └── ai/page.tsx        # Planned Pocket AI interface at /ai
+│   └── api/
+│       └── ai/route.ts        # Planned authenticated AI endpoint
 │
 ├── components/
 │   └── ai/                    # AI-specific UI components
@@ -90,6 +101,9 @@ Pocket/
 ├── lib/
 │   └── ai/                    # AI logic, prompts, and tools
 │       └── tools/
+│
+├── scripts/
+│   └── test_openai.py         # Existing local API connection test
 │
 ├── docs/
 │   └── egr404/
@@ -101,7 +115,7 @@ Pocket/
 └── README.md                  # Main Pocket documentation
 ```
 
-These directories will be created as they become necessary during implementation rather than creating unused project structure in advance.
+The AI application paths remain planned; the connection script and EGR404 documentation exist. Additional directories will be created as they become necessary during implementation.
 
 ---
 
@@ -228,7 +242,8 @@ These resources will serve as implementation references rather than fixed archit
 ### Phase 1 — Foundation
 
 - Define the Pocket AI architecture.
-- Connect Pocket to the selected generative AI API.
+- Completed: demonstrate a local Python request to OpenAI.
+- Planned: integrate OpenAI into Pocket's Next.js backend.
 - Create an initial AI interface.
 
 ### Phase 2 — Grounded Pocket Data
@@ -261,11 +276,11 @@ These resources will serve as implementation references rather than fixed archit
 
 ## Development Documentation
 
-Additional documentation will be added as the project develops:
+The following documentation tracks the current prototype and planned implementation:
 
-- `architecture.md` — system architecture and design decisions
-- `evaluation.md` — testing and evaluation methodology
-- `results.md` — experimental results, limitations, and findings
+- [architecture.md](architecture.md) — system architecture and design decisions
+- [evaluation.md](evaluation.md) — testing and evaluation methodology
+- [results.md](results.md) — experimental results, limitations, and findings
 
 This README will also evolve throughout the semester to reflect the final implementation rather than only the original project plan.
 
@@ -278,3 +293,5 @@ Pocket is an ongoing personal software project and was not created specifically 
 The EGR404 contribution begins with the design and development of **Pocket AI**. AI-specific source code, Git commits, documentation, testing, and evaluation will be clearly identified so that the work completed for the course can be distinguished from Pocket's pre-existing functionality.
 
 Pocket itself will continue to develop alongside the course project, while this documentation will specifically track the generative AI work completed for EGR404.
+
+AI-specific commits use a scope such as `feat(ai):`, `fix(ai):`, `docs(ai):`, or `test(ai):` to make the EGR404 contribution easy to identify. This work is separate from ELE469 Pocket Cloud.
