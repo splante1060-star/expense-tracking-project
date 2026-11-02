@@ -13,15 +13,15 @@ EGR404 | Status: November 2, 2026
 
 ## Existing Pocket Architecture
 
-| Layer | Existing implementation |
-| --- | --- |
-| Application | Next.js App Router, React, TypeScript |
-| Signed-in layout | `app/(main)/layout.tsx` checks Clerk authentication and redirects signed-out visitors to `/sign-in`; provides the sidebar and header |
-| Clerk middleware | `proxy.ts` runs Clerk middleware, including on API routes, without an explicit route protection rule |
-| Pocket user mapping | `lib/checkUser.ts` finds or creates a database user using the Clerk user ID |
-| Database | `lib/prisma.ts` exports a shared Prisma client using the PostgreSQL adapter |
-| Financial operations | Server actions in `actions/` and application logic in `lib/`; financial records use the internal Pocket user ID |
-| Background processing | `app/api/inngest/route.ts` serves recurring transaction and AutoPay jobs |
+| Layer                 | Existing implementation                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Application           | Next.js App Router, React, TypeScript                                                                                                |
+| Signed-in layout      | `app/(main)/layout.tsx` checks Clerk authentication and redirects signed-out visitors to `/sign-in`; provides the sidebar and header |
+| Clerk middleware      | `proxy.ts` runs Clerk middleware, including on API routes, without an explicit route protection rule                                 |
+| Pocket user mapping   | `lib/checkUser.ts` finds or creates a database user using the Clerk user ID                                                          |
+| Database              | `lib/prisma.ts` exports a shared Prisma client using the PostgreSQL adapter                                                          |
+| Financial operations  | Server actions in `actions/` and application logic in `lib/`; financial records use the internal Pocket user ID                      |
+| Background processing | `app/api/inngest/route.ts` serves recurring transaction and AutoPay jobs                                                             |
 
 The main layout does not protect API endpoints. The planned AI route must independently authenticate each request. Clerk IDs and internal Pocket user IDs are distinct.
 
@@ -35,14 +35,22 @@ The script uses `gpt-4.1-mini`, a simple role question, and instructions that fi
 
 The demonstrated run has no UI, Next.js endpoint, Clerk authentication, or financial database access. It proves local API connectivity rather than deployed backend integration. Python does not automatically load Pocket's `.env` file.
 
+## Prompt Refinement Prototype
+
+The active script remains `scripts/test_openai.py`, with the fixed input “What is your role as Pocket AI?” Each run is an independent request; interactive terminal input and multi-turn conversation history are not implemented yet.
+
+The revised instructions define a warm, kind, helpful, nonjudgmental voice and a factual role: explain spending, upcoming bills, balance changes, category totals, and activity since the user's last visit. Pocket remains the source of truth. Missing information must be acknowledged rather than guessed, and the assistant must not offer unsolicited financial tips, recommend financial decisions, or provide personalized investment recommendations.
+
+The prototype explicitly describes its current lack of data access and future approved read-only tools. These tools are planned, not connected. Prompt instructions express the intended boundaries; authorization and read-only restrictions must also be enforced in backend code when implemented.
+
 ## Planned Pocket AI Additions
 
-| Path | Responsibility |
-| --- | --- |
-| `app/(main)/ai/page.tsx` | AI page at `/ai`, using the existing application layout |
-| `app/api/ai/route.ts` | Authenticate requests, validate input, and coordinate server-side AI calls |
-| `components/ai/` | Chat messages, input, and loading/error states |
-| `lib/ai/` | Server-only provider integration, instructions, and controlled financial tools |
+| Path                     | Responsibility                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `app/(main)/ai/page.tsx` | AI page at `/ai`, using the existing application layout                        |
+| `app/api/ai/route.ts`    | Authenticate requests, validate input, and coordinate server-side AI calls     |
+| `components/ai/`         | Chat messages, input, and loading/error states                                 |
+| `lib/ai/`                | Server-only provider integration, instructions, and controlled financial tools |
 
 These application additions are planned, not implemented by the Python test.
 
@@ -68,7 +76,7 @@ These application additions are planned, not implemented by the Python test.
 
 ## Incremental Implementation
 
-1. Completed: local Python API connection test.
+1. Completed: local Python API connection test and fixed-prompt instruction refinement.
 2. Planned: authenticated Next.js API integration without financial tools.
 3. Planned: minimal conversational interface.
 4. Planned: one read-only financial tool, checked against known Pocket data.
