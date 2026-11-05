@@ -1,5 +1,13 @@
+import { auth } from "@clerk/nextjs/server";
+
 export async function POST() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   return Response.json({
-    message: "Pocket AI endpoint is working!",
+    message: "Pocket AI authenticated endpoint is working!",
   });
 }
