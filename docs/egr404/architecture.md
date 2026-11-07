@@ -1,12 +1,12 @@
 # Pocket AI Architecture
 
-EGR404 | Status: November 2, 2026
+EGR404 | Status: November 7, 2026
 
 ## Decisions
 
 - Extend the existing Pocket application and database.
 - Reuse Clerk authentication and the internal Pocket user identity.
-- Keep AI credentials, provider requests, and database access on the server in the planned application integration.
+- Keep AI credentials, provider requests, and database access on the server in the application integration.
 - Begin with a local Python connection test, then add the Next.js endpoint and interface incrementally.
 - Introduce controlled, read-only financial tools later. Pocket remains responsible for financial facts and calculations.
 - Keep this work separate from ELE469 Pocket Cloud.
@@ -23,9 +23,9 @@ EGR404 | Status: November 2, 2026
 | Financial operations  | Server actions in `actions/` and application logic in `lib/`; financial records use the internal Pocket user ID                      |
 | Background processing | `app/api/inngest/route.ts` serves recurring transaction and AutoPay jobs                                                             |
 
-The main layout does not protect API endpoints. The planned AI route must independently authenticate each request. Clerk IDs and internal Pocket user IDs are distinct.
+The main layout does not protect API endpoints. The AI route independently authenticates each request with `auth()`. Clerk IDs and internal Pocket user IDs are distinct.
 
-## Current Prototype
+## Week 1 Prototype
 
 ```text
 VS Code terminal → scripts/test_openai.py → OpenAI Responses API → terminal output
@@ -37,13 +37,13 @@ The demonstrated run has no UI, Next.js endpoint, Clerk authentication, or finan
 
 ## Prompt Refinement Prototype
 
-The active script remains `scripts/test_openai.py`, with the fixed input “What is your role as Pocket AI?” Each run is an independent request; interactive terminal input and multi-turn conversation history are not implemented yet.
+The active script remains `scripts/test_openai.py`, with the fixed input “What is your role as Pocket AI?” Each run is an independent request; interactive terminal input and multi-turn conversation history are not implemented in this script. Week 2 adds history in the web application.
 
 The revised instructions define a warm, kind, helpful, nonjudgmental voice and a factual role: explain spending, upcoming bills, balance changes, category totals, and activity since the user's last visit. Pocket remains the source of truth. Missing information must be acknowledged rather than guessed, and the assistant must not offer unsolicited financial tips, recommend financial decisions, or provide personalized investment recommendations.
 
 The prototype explicitly describes its current lack of data access and future approved read-only tools. These tools are planned, not connected. Prompt instructions express the intended boundaries; authorization and read-only restrictions must also be enforced in backend code when implemented.
 
-## Planned Pocket AI Additions
+## Pocket AI Application Paths
 
 | Path                     | Responsibility                                                                 |
 | ------------------------ | ------------------------------------------------------------------------------ |
@@ -52,9 +52,9 @@ The prototype explicitly describes its current lack of data access and future ap
 | `components/ai/`         | Chat messages, input, and loading/error states                                 |
 | `lib/ai/`                | Server-only provider integration, instructions, and controlled financial tools |
 
-These application additions are planned, not implemented by the Python test.
+The page, route, and `components/ai/chat-interface.tsx` are implemented in Week 2. `lib/ai/` remains planned; instructions and the provider call currently live in the API route.
 
-## Planned Request and Data Flow
+## Planned Financial Request and Data Flow (Weeks 3–4)
 
 1. A signed-in user submits a question through the AI interface.
 2. The API route independently verifies Clerk authentication and validates the request.
@@ -72,13 +72,31 @@ These application additions are planned, not implemented by the Python test.
 - Missing data and failed lookups must be distinguished. `checkUser()` currently returns `null` for both unauthenticated users and caught provisioning/database errors; AI integration must handle those cases explicitly.
 - Define date ranges, transaction statuses, and amount formatting for financial tools. Reuse existing financial logic where appropriate.
 - Initial tools will not modify records or move money. Personalized investment recommendations are outside the initial scope.
-- Add input/output limits and controlled error handling when implementing the API endpoint.
+- Week 2 enforces input limits, nonempty model output, and controlled errors; financial tool authorization remains future work.
 
 ## Incremental Implementation
 
 1. Completed: local Python API connection test and fixed-prompt instruction refinement.
-2. Planned: authenticated Next.js API integration without financial tools.
-3. Planned: minimal conversational interface.
+2. Completed Week 2: authenticated Next.js API integration without financial tools.
+3. Completed Week 2: conversational interface with validation, friendly errors, request guard, and bounded multi-turn context.
 4. Planned: one read-only financial tool, checked against known Pocket data.
 
 Verification and observations are tracked in [evaluation.md](evaluation.md) and [results.md](results.md).
+
+## Week 2 Request Flow and Validation
+
+```text
+/ai → ChatInterface → POST /api/ai → Clerk auth → input validation
+    → OpenAI Responses API → output validation → chat response or friendly error
+```
+
+- The browser sends `{ messages: conversation }`, taking `[...messages, newMessage].slice(-10)` and forwarding only `role` and `content`. The visible conversation remains in React state; the 10-message cap applies to submitted context, not displayed history. Refresh clears state.
+- The route checks Clerk authentication (401 if absent), then server-side key configuration (503 if absent). The API key stays on the server.
+- History must be an array of 1–10 objects, each with role `user` or `assistant`, nonblank string content, and raw content length at most 1,000 characters. The final role must be `user`. Invalid history returns 400 with `Invalid conversation history`. Accepted content is trimmed and only role/content are forwarded. Role alternation is not enforced.
+- The route supplies its own instructions, uses `gpt-4.1-mini`, `input: conversation`, `store: false`, and `max_output_tokens: 100`. It does not use stored response IDs. `store: false` controls response storage; it is not a claim of zero provider retention.
+- Missing or blank `output_text` returns 502. Caught failures, including malformed JSON, return a generic 500. Server logging records the error name rather than the full provider error.
+- The frontend rejects unsuccessful HTTP responses and missing/blank `data.message`. It displays “Sorry, Pocket AI couldn't respond right now. Please try again.” in a separate `role="alert"` element, without adding an assistant error message to history. The submitted user message remains.
+- A `useRef` request guard tracks an in-flight request synchronously. The Send button is disabled for blank input or loading; `finally` resets the guard and loading state. The guard currently precedes `preventDefault()` in the handler; repeated nonempty submissions were not independently tested.
+- No Prisma query, financial tool definition, or function-calling execution is present in the AI route. Weeks 3–4 will add narrowly scoped read-only server functions that resolve the authenticated Pocket user and query only that user's records. The model will not receive direct database access.
+
+History count/length boundaries and truncation behavior are implemented but not separately tested. See [results.md](results.md) for the observed role rejection and context-follow-up results.

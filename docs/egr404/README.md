@@ -44,15 +44,16 @@ The primary goals of Pocket AI are to:
 
 ---
 
-## Current Progress — November 2, 2026
+## Current Progress — November 7, 2026
 
-- Completed Week 1 deliverable 1: AI and financial privacy research.
-- Documented the architecture overview in [architecture.md](architecture.md).
-- Completed the initial OpenAI API connection test with `scripts/test_openai.py`, run locally using Python in the VS Code terminal.
-- Completed Week 1 deliverable 4 as a prompt refinement experiment: compared the initial Pocket response with revised instructions for personality, factual scope, and data access boundaries.
-- `scripts/test_openai.py` is the active fixed-prompt test.
-- The successful request demonstrates API connectivity. Next.js integration, the chat interface, Clerk protection for the AI endpoint, and financial tools remain planned.
-- See [evaluation.md](evaluation.md) for the verification approach and [results.md](results.md) for the observed response.
+- Completed Week 1: privacy research, local Python connection test, and prompt refinement. `scripts/test_openai.py` preserves the fixed-prompt prototype.
+- Completed Week 2 implementation and recorded testing: authenticated Next.js OpenAI integration, the `/ai` chat UI, frontend/backend response validation, friendly errors, and a synchronous request guard.
+- Three financial prompt boundary tests passed (3/3). An invalid conversation role returned HTTP 400, and a contextual follow-up correctly used earlier messages.
+- The frontend submits the latest 10 messages, including the current question; the backend accepts 1–10 messages with at most 1,000 characters each. History boundary tests have not yet been performed.
+- Conversation state is lost on refresh. Requests use `store: false`; no database access or financial tools are connected.
+- Week 2 documentation is updated here. No new commit is recorded by this documentation update.
+- Weeks 3–4 remain planned: authenticated, read-only Prisma function calling against Pocket data. Weeks 5–6 target While You Were Away.
+- See [architecture.md](architecture.md), [evaluation.md](evaluation.md), and [results.md](results.md) for implementation details, evidence, and limitations.
 
 ## Planned Architecture
 
@@ -82,26 +83,26 @@ The exact architecture may evolve as concepts and tools are introduced throughou
 
 ---
 
-## Planned Repository Organization
+## Repository Organization
 
 The EGR404 project will remain inside the existing Pocket repository because the AI functionality depends directly on Pocket's application and financial data.
 
-The planned organization is:
+Current and planned AI paths are:
 
 ```text
 Pocket/
 │
 ├── app/
 │   ├── (main)/
-│   │   └── ai/page.tsx        # Planned Pocket AI interface at /ai
+│   │   └── ai/page.tsx        # Existing Pocket AI interface at /ai
 │   └── api/
-│       └── ai/route.ts        # Planned authenticated AI endpoint
+│       └── ai/route.ts        # Existing authenticated AI endpoint
 │
 ├── components/
-│   └── ai/                    # AI-specific UI components
+│   └── ai/                    # Existing chat-interface.tsx
 │
 ├── lib/
-│   └── ai/                    # AI logic, prompts, and tools
+│   └── ai/                    # Planned AI logic, prompts, and tools
 │       └── tools/
 │
 ├── scripts/
@@ -117,7 +118,7 @@ Pocket/
 └── README.md                  # Main Pocket documentation
 ```
 
-The AI application paths remain planned; the connection script and EGR404 documentation exist. Additional directories will be created as they become necessary during implementation.
+The AI page, API route, chat component, connection script, and EGR404 documentation exist. Provider integration and instructions currently live in `app/api/ai/route.ts`; `lib/ai/` and financial tools remain planned.
 
 ---
 
@@ -244,18 +245,18 @@ These resources will serve as implementation references rather than fixed archit
 ### Phase 1 — Foundation
 
 - Define the Pocket AI architecture.
-- Completed: demonstrate a local Python request to OpenAI.
-- Completed: refine Pocket AI instructions using the same fixed test question.
-- Planned: integrate OpenAI into Pocket's Next.js backend.
-- Create an initial AI interface.
+- Completed Week 1: demonstrate a local Python request to OpenAI.
+- Completed Week 1: refine Pocket AI instructions using the same fixed test question.
+- Completed Week 2: integrate OpenAI into Pocket's authenticated Next.js backend.
+- Completed Week 2: chat interface, validation, friendly errors, request guard, and bounded multi-turn context.
 
-### Phase 2 — Grounded Pocket Data
+### Phase 2 — Grounded Pocket Data (Weeks 3–4)
 
 - Develop controlled access to selected Pocket financial data.
 - Implement initial tools/functions.
 - Allow the AI to answer questions using real Pocket data.
 
-### Phase 3 — Intelligent Summaries
+### Phase 3 — Intelligent Summaries (Weeks 5–6)
 
 - Expand supported financial questions.
 - Develop the While You Were Away feature.

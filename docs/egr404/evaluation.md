@@ -1,6 +1,6 @@
 # Pocket AI Evaluation
 
-EGR404 | Status: November 2, 2026
+EGR404 | Status: November 7, 2026
 
 ## Initial Connection Check
 
@@ -36,20 +36,47 @@ A preliminary general-versus-specific comparison was run, but it mainly demonstr
 
 This is a qualitative, exploratory comparison with one recorded response per prompt version. Multiple instructions changed together, so results do not isolate individual instruction effects or establish consistent behavior. Introductory answers alone do not verify financial accuracy, recommendation avoidance across other questions, or enforcement of read-only access.
 
-## Planned Verification After Integration
+## Remaining Verification for Financial Integration
 
 | Area | Check |
 | --- | --- |
-| Authentication | Unauthenticated AI requests are rejected before a provider call |
+| Authentication | Preserve the Week 2 route check when adding financial tools |
 | User isolation | Financial tools cannot retrieve another user's records |
 | Financial accuracy | Answers agree with a small set of known Pocket records and calculations |
 | Grounding | Unsupported balances, transactions, dates, and totals are not presented as facts |
 | Failure handling | Missing records and service/database failures produce clear, distinct outcomes |
 
-These checks remain planned until the relevant application features exist.
+User isolation, financial accuracy, and database-failure checks remain planned for Weeks 3–4. Week 2 authentication and application tests are recorded below.
 
 ## Budget and Evidence
 
 The initial API budget is approximately $10. Keep prompts short and output capped, reuse recorded responses for documentation, and make additional paid requests only when needed to verify a change or a defined evaluation question. No repeat call is needed solely to document the successful connection.
 
 Record the test date, script/model/settings, exact prompt, observed response, and limitations in [results.md](results.md). Do not record API keys. Exact request cost and token usage were not captured by the initial script.
+
+## Week 2 — Integration and Conversation Evaluation
+
+The primary chronological record is Sophie's **Next.js OpenAI API Integration.docx**, supplemented by the referenced Pocket AI conversation for prompt wording and follow-up details. Current implementation was checked against `app/api/ai/route.ts` and `components/ai/chat-interface.tsx`. Results below document prior local tests; no new application or paid model tests were run for this documentation update.
+
+Testing progressed from a stub endpoint, through Clerk protection and a fixed OpenAI question, to a live chat UI, response validation, error recovery, prompt boundaries, and multi-turn history. Earlier `{ message: text }` requests are historical; the current contract is `{ messages: [{ role, content }] }`.
+
+| Area | Method and pass criterion |
+| --- | --- |
+| Authentication | Compare unauthenticated terminal POST (401 after protection) with signed-in dashboard POST (200) |
+| End-to-end chat | Submit the role question at `localhost:3000/ai`; show user text, loading feedback, then nonempty assistant text acknowledging missing data access |
+| Backend output validation | Temporarily mock empty `output_text`; expect 502, without a model call |
+| Frontend validation | Temporarily mock HTTP 200 with `{ message: "" }`; expect friendly error and no assistant message |
+| Loading and recovery | Three-second success and HTTP 500 mocks; check loading, disabled Send, cleanup, and ability to submit after failure |
+| Prompt boundaries | Three real model prompts: missing grocery data, investment recommendation, and pressure to fabricate a spending estimate; require no invented financial amount or personalized recommendation |
+| History roles | Submit a client `system` role; expect 400 `Invalid conversation history` before a model call |
+| Context follow-up | Ask “What can you help me with?” then “Can you explain the first one?” without refreshing; require reference to the first capability in the prior response |
+
+Temporary mocks were removed; current source uses the real fetch and OpenAI calls. These manual examples provide limited evidence, not a broad reliability score. The 3/3 result counts only the three prompt boundary examples.
+
+### Tests Still Needed
+
+- History count limits (empty, exactly 10, over 10), frontend truncation, 1,000-character content boundary, and invalid final role.
+- A second nonempty submission while a request is pending. The recorded repeated-Enter test used empty input; it does not independently establish overlapping-request protection.
+- Grounded financial accuracy, tool selection, user isolation, and read-only enforcement once Prisma tools exist in Weeks 3–4.
+
+No financial data was supplied to the model in Week 2. Token usage, exact request cost, and latency were not recorded for these tests.
