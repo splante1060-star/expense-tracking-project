@@ -12,8 +12,11 @@ type Message = {
 export default function ChatInterface() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    if (isLoading) return;
+
     event.preventDefault();
 
     const text = input.trim();
@@ -28,6 +31,33 @@ export default function ChatInterface() {
 
     setMessages((previous) => [...previous, newMessage]);
     setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get a response.");
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: data.message,
+      };
+
+      setMessages((previous) => [...previous, assistantMessage]);
+    } catch (error) {
+      console.error("Pocket AI request failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -57,6 +87,11 @@ export default function ChatInterface() {
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <p className="text-sm text-(--pocket-blue-medium)">
+                Pocket AI is thinking...
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -73,7 +108,7 @@ export default function ChatInterface() {
 
         <button
           type="submit"
-          disabled={!input.trim()}
+          disabled={!input.trim() || isLoading}
           className="rounded-lg bg-(--pocket-blue) px-5 py-3 text-white disabled:opacity-50"
         >
           Send
