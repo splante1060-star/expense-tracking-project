@@ -1,6 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 
+type ConversationMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 export async function POST(request: Request) {
   const { userId } = await auth();
 
@@ -17,15 +22,34 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const message = body?.message;
+    const messages = body?.messages;
 
     if (
-      typeof message !== "string" ||
-      !message.trim() ||
-      message.length > 1000
+      !Array.isArray(messages) ||
+      messages.length === 0 ||
+      messages.length > 10 ||
+      !messages.every(
+        (message) =>
+          message !== null &&
+          typeof message === "object" &&
+          (message.role === "user" || message.role === "assistant") &&
+          typeof message.content === "string" &&
+          message.content.trim().length > 0 &&
+          message.content.length <= 1000,
+      ) ||
+      messages[messages.length - 1].role !== "user"
     ) {
-      return Response.json({ error: "Invalid message" }, { status: 400 });
+      return Response.json(
+        { error: "Invalid conversation history" },
+        { status: 400 },
+      );
     }
+
+    const conversation: ConversationMessage[] = messages.map((message) => ({
+      role: message.role,
+      content: message.content.trim(),
+    }));
+
     const client = new OpenAI();
 
     const response = await client.responses.create({
@@ -51,7 +75,7 @@ export async function POST(request: Request) {
         "Describe your role through concrete examples such as explaining " +
         "monthly spending or listing upcoming bills, rather than broad promises. " +
         "Keep your response to two sentences.",
-      input: message.trim(),
+      input: conversation,
       store: false,
       max_output_tokens: 100,
     });

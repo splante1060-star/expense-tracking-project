@@ -32,6 +32,10 @@ export default function ChatInterface() {
       content: text,
     };
 
+    const conversation = [...messages, newMessage]
+      .slice(-10)
+      .map(({ role, content }) => ({ role, content }));
+
     setMessages((previous) => [...previous, newMessage]);
     setInput("");
     setError(null);
@@ -41,7 +45,7 @@ export default function ChatInterface() {
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ messages: conversation }),
       });
 
       if (!response.ok) {
