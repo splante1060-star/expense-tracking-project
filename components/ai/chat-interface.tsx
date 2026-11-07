@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { SubmitEvent } from "react";
 
 type Message = {
@@ -14,15 +14,17 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestInProgress = useRef(false);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    if (isLoading) return;
+    if (requestInProgress.current) return;
 
     event.preventDefault();
 
     const text = input.trim();
 
     if (!text) return;
+    requestInProgress.current = true;
 
     const newMessage: Message = {
       id: crypto.randomUUID(),
@@ -65,6 +67,7 @@ export default function ChatInterface() {
         "Sorry, Pocket AI couldn't respond right now. Please try again.",
       );
     } finally {
+      requestInProgress.current = false;
       setIsLoading(false);
     }
   }
