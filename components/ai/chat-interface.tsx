@@ -13,6 +13,7 @@ export default function ChatInterface() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     if (isLoading) return;
@@ -31,6 +32,7 @@ export default function ChatInterface() {
 
     setMessages((previous) => [...previous, newMessage]);
     setInput("");
+    setError(null);
     setIsLoading(true);
 
     try {
@@ -46,6 +48,10 @@ export default function ChatInterface() {
 
       const data = await response.json();
 
+      if (typeof data?.message !== "string" || !data.message.trim()) {
+        throw new Error("Invalid assistant response");
+      }
+
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -55,6 +61,9 @@ export default function ChatInterface() {
       setMessages((previous) => [...previous, assistantMessage]);
     } catch (error) {
       console.error("Pocket AI request failed:", error);
+      setError(
+        "Sorry, Pocket AI couldn't respond right now. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -91,6 +100,14 @@ export default function ChatInterface() {
               <p className="text-sm text-(--pocket-blue-medium)">
                 Pocket AI is thinking...
               </p>
+            )}
+            {error && (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {error}
+              </div>
             )}
           </div>
         )}

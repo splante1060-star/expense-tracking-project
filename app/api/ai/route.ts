@@ -56,6 +56,16 @@ export async function POST(request: Request) {
       max_output_tokens: 100,
     });
 
+    if (
+      typeof response.output_text !== "string" ||
+      !response.output_text.trim()
+    ) {
+      return Response.json(
+        { error: "No assistant response generated" },
+        { status: 502 },
+      );
+    }
+
     return Response.json({
       message: response.output_text,
     });
