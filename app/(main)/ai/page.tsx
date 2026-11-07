@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import ChatInterface from "@/components/ai/chat-interface";
 
 export default function AIPage() {
   return (
@@ -13,11 +14,7 @@ export default function AIPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-(--pocket-blue-soft) bg-(--pocket-blue-light) p-6">
-        <p className="text-sm text-(--pocket-blue)">
-          Welcome to Pocket AI! Your conversation interface will appear here.
-        </p>
-      </div>
+      <ChatInterface />
     </div>
   );
 }
