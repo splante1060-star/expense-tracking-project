@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 
-export async function POST() {
+export async function POST(request: Request) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -16,6 +16,16 @@ export async function POST() {
   }
 
   try {
+    const body = await request.json();
+    const message = body?.message;
+
+    if (
+      typeof message !== "string" ||
+      !message.trim() ||
+      message.length > 1000
+    ) {
+      return Response.json({ error: "Invalid message" }, { status: 400 });
+    }
     const client = new OpenAI();
 
     const response = await client.responses.create({
@@ -41,7 +51,7 @@ export async function POST() {
         "Describe your role through concrete examples such as explaining " +
         "monthly spending or listing upcoming bills, rather than broad promises. " +
         "Keep your response to two sentences.",
-      input: "What is your role as Pocket AI?",
+      input: message.trim(),
       store: false,
       max_output_tokens: 100,
     });
