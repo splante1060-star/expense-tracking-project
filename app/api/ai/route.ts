@@ -2,7 +2,11 @@ import { auth } from "@clerk/nextjs/server";
 import { financialTools } from "@/lib/ai/tool-definitions";
 import { db } from "@/lib/prisma";
 import { getMonthlyCategorySpending } from "@/lib/ai/financial-tools";
-import { CategoryType } from "@/lib/generated/prisma/enums";
+import {
+  PocketUserNotFoundError,
+  resolvePocketUserId,
+} from "@/lib/ai/user-context";
+import { parseMonthlySpendingArguments } from "@/lib/ai/tool-validation";
 
 import OpenAI from "openai";
 
@@ -131,31 +135,11 @@ export async function POST(request: Request) {
       }
 
       // parse and validate model-generated arguments
-      let args: unknown;
+      let args: ReturnType<typeof parseMonthlySpendingArguments>;
 
       try {
-        args = JSON.parse(call.arguments);
+        args = parseMonthlySpendingArguments(call.arguments);
       } catch {
-        return Response.json(
-          { error: "invalid function arguments" },
-          { status: 502 },
-        );
-      }
-
-      if (
-        typeof args !== "object" ||
-        args === null ||
-        Array.isArray(args) ||
-        !("month" in args) ||
-        typeof args.month !== "string" ||
-        !("category" in args) ||
-        !(
-          args.category === null ||
-          (typeof args.category === "string" &&
-            Object.values(CategoryType).includes(args.category as CategoryType))
-        ) ||
-        Object.keys(args).some((key) => key !== "month" && key !== "category")
-      ) {
         return Response.json(
           { error: "Invalid function arguments" },
           { status: 502 },
@@ -164,25 +148,25 @@ export async function POST(request: Request) {
 
       // resolve the Pocket user from the authenticated Clerk session
       // userId comes from the existing auth() call above
-      const pocketUser = await db.user.findUnique({
-        where: { clerkUserId: userId },
-        select: { id: true },
-      });
+      const pocketUserId = await resolvePocketUserId(
+        userId,
+        async (clerkUserId) => {
+          const pocketUser = await db.user.findUnique({
+            where: { clerkUserId },
+            select: { id: true },
+          });
 
-      if (!pocketUser) {
-        return Response.json(
-          { error: "Pocket user not found" },
-          { status: 404 },
-        );
-      }
+          return pocketUser?.id ?? null;
+        },
+      );
 
       // Pocket calculates the spending total
       const result = await getMonthlyCategorySpending(
         {
           month: args.month,
-          category: args.category as CategoryType | null,
+          category: args.category,
         },
-        pocketUser.id,
+        pocketUserId,
       );
 
       // send verified result back for a final explanation
@@ -213,6 +197,10 @@ export async function POST(request: Request) {
     return Response.json({ message: answer });
   } catch (error) {
     console.error("Pocket AI request failed:", error);
+
+    if (error instanceof PocketUserNotFoundError) {
+      return Response.json({ error: "Pocket user not found" }, { status: 404 });
+    }
 
     return Response.json(
       { error: "Failed to generate AI response" },
