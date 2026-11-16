@@ -131,3 +131,104 @@ The assistant correctly resolved “the first one” to monthly spending and des
 - No Pocket financial records were retrieved or modified, and no database/tool access is connected to the AI route. Authentication success does not establish financial user isolation.
 - Weeks 3–4 will introduce authenticated read-only server functions using Prisma, with user-scoped queries and Pocket-calculated financial values. Tool selection, financial grounding, and read-only enforcement remain future evaluation work. Weeks 5–6 target While You Were Away.
 - Week 2 (only) stats: $0 spent, 1,383 tokens used, 6 total requests. The Week 1 usage figures above apply only to that earlier milestone.
+
+## Week 3 — Function Calling & Financial Data Integration
+
+Recorded through November 16, 2026. This section preserves the earlier weeks as historical records. Evidence comes from the referenced Pocket AI conversation and its recorded test observations; source and commit history were inspected for this documentation update. No new application, database, or paid model tests were run, and screenshot contents were not independently re-inspected here.
+
+### Deliverable 1 — Database and Function-Calling Research
+
+Reviewed Pocket's Prisma schema, user mapping, existing transaction/category calculations, local-date conventions, and authenticated AI route. Identified the internal Pocket user ID as the transaction ownership key. Chose a read-only lookup instead of `checkUser()` because that helper can create users. Selected one monthly category-spending tool: OpenAI supplies month/category; Pocket authenticates, validates, calculates, and returns structured data for explanation. No schema change or direct model database access was required. The final implementation uses Prisma `aggregate`, rather than treating earlier `groupBy` suggestions as implemented code.
+
+### Deliverable 2 — Read-Only Function and Date Validation
+
+Defined typed input/output in `lib/ai/financial-tools.ts`; separated the pure month helper into `lib/ai/date-utils.ts` so standalone testing could run while retaining `server-only` on the financial module. Implemented completed-expense aggregation with trusted server-supplied identity, optional category, inclusive start/exclusive end, Decimal-formatted totals, counts, and timezone/date metadata.
+
+| Local test | Actual recorded result |
+| --- | --- |
+| November, July, December 2026 date boundaries | Expected runtime-local boundaries; November daylight saving transition and December rollover observed |
+| `2026-13`, `2026-00`, `2026-2`, `November 2026` | Rejected; seven date cases in total produced expected results |
+| November groceries | `"0.00"`, 0 transactions; no November expenses had been entered at that stage |
+| September all categories | `"2774.00"`, 14 transactions; dashboard total $2,774 matched |
+| September groceries | `"4.68"`, 2 transactions; consistent with rounded dashboard display of $5 |
+| Invalid month in temporary route | `{"error":"Spending test failed"}` |
+| Invalid `PIZZA` category in typed route | TypeScript rejected it; this was not a runtime category test |
+| Signed-out temporary endpoint | `{"error":"Unauthorized"}`; screenshot/body did not independently establish the HTTP status |
+| Fake `?userId=another-user` URL parameter | Same authenticated September result, $2,774.00 / 14; URL parameter ignored |
+
+These database tests used an authenticated development-only `app/api/ai/test-spending/route.ts` without OpenAI. The temporary route was removed and is absent from the current tree. The exact grocery cents and counts were not independently reconciled against every individual transaction. Ignoring a fake URL ID does not establish cross-account isolation.
+
+### Deliverable 3 — OpenAI Function-Calling Integration
+
+Registered the strict `get_monthly_category_spending` schema, reused the validated `conversation`, and introduced shared `instructions`, `currentEasternDate`, and `contextualInstructions`. Added a single-call allowlist, backend argument validation and identity lookup, Prisma execution, and a second Responses API request with matching `call_id` and `tool_choice: "none"`. Both requests use `gpt-4.1-mini`, `store: false`, and a 300-token output cap. The existing frontend contract remains unchanged.
+
+Four authenticated localhost chat tests passed: September groceries ($4.68 / 2), September overall ($2,774.00 / 14), November groceries (no spending), and unsupported checking balance (declined without inventing a value). Integration TypeScript issues were corrected and the user reported no remaining errors; this is not a fresh typecheck result. Screenshots established visible replies, not intermediate tool-call payloads.
+
+### Deliverable 4 — Financial Data Retrieval and Testing
+
+#### Goal 1: Financial Accuracy
+
+| Vercel chat test | Recorded result and comparison |
+| --- | --- |
+| September 2026 overall | $2,774.00 / 14 transactions; matched prior Prisma output and dashboard total |
+| September groceries | $4.68 / 2; matched prior Prisma result and rounded dashboard category display |
+| October housing | $1,300.00; matched the visible October 30 rent transaction |
+| October utilities | $3.00; matched visible $2 and $1 transactions |
+| November overall / “this month” | $1.00 / 1 transaction; consistent with visible November 16 Utilities expense |
+
+November data changed during the testing sequence: the earlier empty-month observation preceded the later $1 Utilities transaction. November groceries remained empty. Matching these visible values does not independently audit every query or establish production timezone correctness.
+
+#### Goal 2: Conversation Context
+
+“What about groceries?” retained September after the overall spending question and returned $4.68 / 2. “What about utilities?” retained October after housing and returned $3.00. After refusing to change November groceries to $100, the assistant interpreted “Yes” as accepting an actual-spending lookup and returned $0.00 / 0. These are successful recorded examples, not a general context-retention score.
+
+#### Goal 3: Missing and Unsupported Data
+
+An unspecified-month dining question elicited clarification. “This month” resolved to November 2026 and returned the recorded $1.00 total. November groceries returned no spending despite the Utilities expense. Checking balances and individual transaction details were correctly described as unsupported. No fabricated financial values were observed in these examples.
+
+#### Goal 4: Authentication and Security
+
+A signed-out POST to the deployed `/api/ai` returned **HTTP/2 401**, `x-clerk-auth-status: signed-out`, and `{"error":"Unauthorized"}`. Opening that URL in an incognito browser produced 405 because browser navigation used GET; that response alone was not the POST authentication test.
+
+`test-ai-user-isolation.ts` passed **4/4** controlled cases: User A identity selected, User B data not selected in the mock, missing identity rejected, unknown user rejected. It tests the actual `resolvePocketUserId` helper with mocked lookup/data. The route resolves Clerk's server-authenticated ID via `db.user.findUnique`, and the spending query filters the resulting Pocket ID. **Mock identity testing is not full production cross-account isolation**; no two-account full-route test was completed.
+
+#### Goal 5: Error Handling and Read-Only Behavior
+
+| Local script / review | Recorded result | Scope |
+| --- | --- | --- |
+| `test-ai-tool-validation.ts` | **9/9 passed** | Actual parser: valid category/null plus malformed JSON, invalid month/category, unexpected `userId`, missing month/category, array |
+| `test-ai-database-failure.ts` | **2/2 passed** | Successful empty aggregate yields zero; simulated failure propagates. Standalone handling pattern, not production Prisma function |
+| `test-ai-api-failure.ts` | **3/3 passed** | Simplified handler returns 500 for failure, 502 for empty response, 200 for success; not the full route or direct OpenAI API failure tests |
+| Production modification requests | Refused changes to November groceries and an instruction-override attempt to set October utilities to $100 | No false modification confirmation observed |
+| AI database-path review | `db.user.findUnique` and `db.transaction.aggregate` only; one read-only model tool | No write tool exposed; no before/after database audit performed |
+
+The tested parser was integrated into the real route. Unexpected `userId` fields are rejected before financial queries. These results support the observed boundaries without establishing universal prompt-injection resistance or full failure coverage.
+
+#### Local Timezone Diagnostic and Remaining Caveats
+
+The temporary local diagnostic reported `America/New_York`, September start `2026-09-01T04:00:00.000Z`, and exclusive end `2026-10-01T04:00:00.000Z`. November's earlier helper output was `2026-11-01T04:00:00.000Z` through `2026-12-01T05:00:00.000Z`, reflecting daylight saving changes. The diagnostic was removed.
+
+**Vercel's runtime timezone remains unverified.** Month boundaries use JavaScript runtime-local dates even though the model receives an explicitly Eastern current date. Production answers matching sample totals do not verify transactions near month boundaries. Full cross-account isolation, direct route/dependency failure tests, intermediate tool instrumentation, and transaction/audit reconciliation remain follow-up work; see [evaluation.md](evaluation.md).
+
+### Week 3 OpenAI API Usage
+
+| Metric | User-reported Week 3 value |
+| --- | --- |
+| Tokens | **15,141** |
+| Requests | **28** |
+| Reported spend | **$0** |
+
+Sophie supplied these OpenAI dashboard totals. They apply only to Week 3, are not per-test measurements, and do not imply that future calls are free. Earlier weekly usage remains unchanged above.
+
+### Deliverable 5 — Git Commit and Documentation
+
+Prepared the Week 3 repository documentation: updated the overview and architecture, recorded evaluation methods and actual results, preserved prior weeks, and documented usage and unresolved limits. The following checkpoints were verified from the repository's Git history (oldest first):
+
+| Commit | Actual subject | Recorded scope |
+| --- | --- | --- |
+| `512e550` | `feat(ai): add monthly spending types and date validation` | Types, date helper, diagnostic script |
+| `ae055f2` | `feat(ai): implement and verify read-only spending query` | Spending aggregate implementation |
+| `1d2aeb9` | `feat(ai): integrate read-only spending tool with OpenAI` | API route and tool schema |
+| `0f0995f` | `test(ai): strengthen financial tool validation and security` | Validator, identity helper, route integration, four test scripts |
+
+The prior Week 2 documentation checkpoint is `8d6a45f` (`feat(ai): egr404 documents week 2 updates`). The four Week 3 checkpoints above contain implementation/testing files, not this Week 3 Markdown update. No separate research commit or new documentation hash is asserted. This update prepares Deliverable 5 documentation for review; committing it remains pending. No source-code changes or new Git commit were made as part of this documentation task.

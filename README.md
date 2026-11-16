@@ -79,3 +79,7 @@ See [`docs/egr404/README.md`](docs/egr404/README.md) for the EGR404 project docu
 Pocket is currently under active development.
 
 Features, architecture, and documentation will continue to evolve as the application grows.
+
+### Week 3 milestone — November 16, 2026
+
+Pocket AI now answers monthly spending questions using one authenticated, read-only function. Pocket calculates completed expense totals and counts; OpenAI explains the result. Production observations and local validation/security/failure tests are documented in [EGR404 results](docs/egr404/results.md#week-3--function-calling--financial-data-integration). Full production cross-account isolation and Vercel timezone behavior remain unverified. Week 3 OpenAI usage reported: **15,141 tokens, 28 requests, $0 spent**.

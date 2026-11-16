@@ -44,16 +44,20 @@ The primary goals of Pocket AI are to:
 
 ---
 
-## Current Progress — November 7, 2026
+## Current Progress — November 16, 2026
 
 - Completed Week 1: privacy research, local Python connection test, and prompt refinement. `scripts/test_openai.py` preserves the fixed-prompt prototype.
 - Completed Week 2 implementation and recorded testing: authenticated Next.js OpenAI integration, the `/ai` chat UI, frontend/backend response validation, friendly errors, and a synchronous request guard.
 - Three financial prompt boundary tests passed (3/3). An invalid conversation role returned HTTP 400, and a contextual follow-up correctly used earlier messages.
 - The frontend submits the latest 10 messages, including the current question; the backend accepts 1–10 messages with at most 1,000 characters each. History boundary tests have not yet been performed.
-- Conversation state is lost on refresh. Requests use `store: false`; no database access or financial tools are connected.
-- Week 2 documentation is updated here. No new commit is recorded by this documentation update.
-- Weeks 3–4 remain planned: authenticated, read-only Prisma function calling against Pocket data. Weeks 5–6 target While You Were Away.
-- See [architecture.md](architecture.md), [evaluation.md](evaluation.md), and [results.md](results.md) for implementation details, evidence, and limitations.
+- Conversation state is lost on refresh. Requests use `store: false`, which is not a zero-retention guarantee.
+- Completed Week 3 Deliverables 1–4: database/function-calling research, read-only monthly spending and date validation, OpenAI integration, and production plus local testing.
+- The approved `get_monthly_category_spending` tool retrieves completed expense totals and counts for the authenticated Pocket user. Other financial tools and While You Were Away remain planned.
+- Production spending answers matched available records; local argument validation passed 9/9 and mock identity checks passed 4/4. Database and OpenAI failure simulations passed 2/2 and 3/3 respectively.
+- Full production cross-account isolation, direct API/database failure tests, and Vercel timezone verification remain outstanding.
+- Week 3 OpenAI usage reported by OpenAI: **15,141 tokens, 28 requests, $0 spent**. These are weekly totals, not per-test measurements.
+- Deliverable 5 documentation is prepared; this update does not create a documentation commit.
+- See [architecture.md](architecture.md), [evaluation.md](evaluation.md), and [results.md](results.md) for implementation details, evidence, Git checkpoints, and limitations.
 
 ## Planned Architecture
 
@@ -102,11 +106,16 @@ Pocket/
 │   └── ai/                    # Existing chat-interface.tsx
 │
 ├── lib/
-│   └── ai/                    # Planned AI logic, prompts, and tools
-│       └── tools/
+│   └── ai/                    # Implemented financial tools and validation
+│       └── financial-tools.ts
 │
 ├── scripts/
-│   └── test_openai.py         # Existing connection and prompt refinement test
+│   ├── test_openai.py                  # Connection and prompt refinement test
+│   ├── test-month-date-range.ts        # Month validation and date-boundary diagnostic
+│   ├── test-ai-tool-validation.ts      # Runtime tool-argument validation tests
+│   ├── test-ai-user-isolation.ts       # Mock identity-resolution tests
+│   ├── test-ai-database-failure.ts     # Standalone database-failure simulation
+│   └── test-ai-api-failure.ts          # Simplified OpenAI-handler failure simulation
 │
 ├── docs/
 │   └── egr404/
@@ -118,7 +127,7 @@ Pocket/
 └── README.md                  # Main Pocket documentation
 ```
 
-The AI page, API route, chat component, connection script, and EGR404 documentation exist. Provider integration and instructions currently live in `app/api/ai/route.ts`; `lib/ai/` and financial tools remain planned.
+The AI page, API route, chat component, connection script, and EGR404 documentation exist. Provider integration and instructions live in `app/api/ai/route.ts`. `lib/ai/` now contains date utilities, the spending function, tool definition, argument validator, and identity resolver; `scripts/` contains local validation and simulation scripts.
 
 ---
 
@@ -252,9 +261,9 @@ These resources will serve as implementation references rather than fixed archit
 
 ### Phase 2 — Grounded Pocket Data (Weeks 3–4)
 
-- Develop controlled access to selected Pocket financial data.
-- Implement initial tools/functions.
-- Allow the AI to answer questions using real Pocket data.
+- Completed Week 3: authenticated monthly spending access through one read-only tool.
+- Completed Week 3: grounded local and production conversation tests, validation, and security/failure simulations.
+- Remaining: broader financial tools and stronger production isolation, failure, and timezone verification.
 
 ### Phase 3 — Intelligent Summaries (Weeks 5–6)
 
