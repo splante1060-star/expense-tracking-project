@@ -46,3 +46,25 @@ export function addCalendarDays(dateKey: string, days: number): string {
 
   return date.toISOString().slice(0, 10);
 }
+
+export function classifyBillDueDate(
+  dueDate: string,
+  asOfDate: string,
+  windowDays: number,
+): "overdue" | "today" | "upcoming" | null {
+  const lastUpcomingDate = addCalendarDays(asOfDate, windowDays);
+
+  if (dueDate > lastUpcomingDate) {
+    return null;
+  }
+
+  if (dueDate < asOfDate) {
+    return "overdue";
+  }
+
+  if (dueDate === asOfDate) {
+    return "today";
+  }
+
+  return "upcoming";
+}

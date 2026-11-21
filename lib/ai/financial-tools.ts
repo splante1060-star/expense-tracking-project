@@ -5,6 +5,7 @@ import {
   getMonthDateRange,
   getEasternDateKey,
   addCalendarDays,
+  classifyBillDueDate,
 } from "./date-utils";
 import { Prisma } from "../generated/prisma/client";
 import { db } from "../prisma";
@@ -110,7 +111,6 @@ export async function getUpcomingBills(
   }
 
   const asOfDate = getEasternDateKey(new Date());
-  const lastUpcomingDate = addCalendarDays(asOfDate, windowDays);
 
   const bills = await db.bill.findMany({
     where: {
@@ -139,16 +139,11 @@ export async function getUpcomingBills(
   for (const bill of bills) {
     const dueDate = getEasternDateKey(bill.dueDate);
 
-    if (dueDate > lastUpcomingDate) {
+    const status = classifyBillDueDate(dueDate, asOfDate, windowDays);
+
+    if (status === null) {
       continue;
     }
-
-    const status: UpcomingBill["status"] =
-      dueDate < asOfDate
-        ? "overdue"
-        : dueDate === asOfDate
-          ? "today"
-          : "upcoming";
 
     const item: UpcomingBill = {
       name: bill.name,
