@@ -176,3 +176,127 @@ export async function getUpcomingBills(
     upcomingTotal: upcomingTotal.toFixed(2),
   };
 }
+
+export type BudgetStatusInput = {
+  category: CategoryType | null;
+};
+
+export type BudgetStatusItem = {
+  category: CategoryType;
+  limit: string;
+  spent: string;
+  remaining: string;
+  percentUsed: number;
+  status: "on_track" | "getting_close" | "over_budget";
+};
+
+export type BudgetStatusOutput = {
+  month: string;
+  category: CategoryType | null;
+  budgets: BudgetStatusItem[];
+  budgetCount: number;
+  totalBudget: string;
+  totalSpent: string;
+  totalRemaining: string;
+};
+
+export async function getBudgetStatus(
+  input: BudgetStatusInput,
+  pocketUserId: string,
+): Promise<BudgetStatusOutput> {
+  if (!pocketUserId.trim()) {
+    throw new Error("Pocket user ID is required");
+  }
+
+  const { category } = input;
+
+  if (category !== null && !Object.values(CategoryType).includes(category)) {
+    throw new Error("Invalid budget category");
+  }
+
+  if (category === "INCOME") {
+    throw new Error("Income cannot be used as a spending budget");
+  }
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const [budgets, spendingByCategory] = await Promise.all([
+    db.budget.findMany({
+      where: {
+        userId: pocketUserId,
+        ...(category !== null ? { category } : {}),
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+
+    db.transaction.groupBy({
+      by: ["category"],
+      where: {
+        userId: pocketUserId,
+        type: "EXPENSE",
+        status: "COMPLETED",
+        date: {
+          gte: monthStart,
+          lt: monthEnd,
+        },
+        ...(category !== null ? { category } : {}),
+      },
+      _sum: {
+        amount: true,
+      },
+    }),
+  ]);
+
+  const spendingMap = new Map(
+    spendingByCategory.map((item) => [
+      item.category,
+      item._sum.amount ?? new Prisma.Decimal(0),
+    ]),
+  );
+
+  let totalBudget = new Prisma.Decimal(0);
+  let totalSpent = new Prisma.Decimal(0);
+
+  const results: BudgetStatusItem[] = budgets.map((budget) => {
+    const spent = spendingMap.get(budget.category) ?? new Prisma.Decimal(0);
+    const remaining = budget.amount.minus(spent);
+
+    const percentUsed = budget.amount.gt(0)
+      ? Math.round(spent.div(budget.amount).mul(100).toNumber())
+      : 0;
+
+    const status: BudgetStatusItem["status"] =
+      percentUsed > 100
+        ? "over_budget"
+        : percentUsed >= 75
+          ? "getting_close"
+          : "on_track";
+
+    totalBudget = totalBudget.plus(budget.amount);
+    totalSpent = totalSpent.plus(spent);
+
+    return {
+      category: budget.category,
+      limit: budget.amount.toFixed(2),
+      spent: spent.toFixed(2),
+      remaining: remaining.toFixed(2),
+      percentUsed,
+      status,
+    };
+  });
+
+  return {
+    month,
+    category,
+    budgets: results,
+    budgetCount: results.length,
+    totalBudget: totalBudget.toFixed(2),
+    totalSpent: totalSpent.toFixed(2),
+    totalRemaining: totalBudget.minus(totalSpent).toFixed(2),
+  };
+}
