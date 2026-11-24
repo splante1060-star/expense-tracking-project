@@ -80,6 +80,7 @@ The page, route, and `components/ai/chat-interface.tsx` were implemented in Week
 2. Completed Week 2: authenticated Next.js API integration without financial tools.
 3. Completed Week 2: conversational interface with validation, friendly errors, request guard, and bounded multi-turn context.
 4. Completed Week 3: one read-only monthly spending tool, checked against available Pocket data.
+5. Completed Week 4: three additional read-only financial tools and bounded multi-function calling.
 
 Verification and observations are tracked in [evaluation.md](evaluation.md) and [results.md](results.md).
 
@@ -101,7 +102,7 @@ Verification and observations are tracked in [evaluation.md](evaluation.md) and 
 
 History count/length boundaries and truncation behavior are implemented but not separately tested. See [results.md](results.md) for the observed role rejection and context-follow-up results.
 
-## Week 3 — Current Financial Tool Architecture
+## Week 3 — Initial Financial Tool Architecture
 
 Deliverable 1 reviewed the Prisma schema, transaction/reporting patterns, `lib/prisma.ts`, `lib/checkUser.ts`, and the AI route. Transactions use internal Pocket `User.id`, not Clerk IDs. `checkUser()` can provision users, so the read-only AI path instead uses `db.user.findUnique`. No schema migration was needed. The researched function-calling design keeps database execution on Pocket's server.
 
@@ -125,6 +126,23 @@ Deliverable 3 extracted trimmed messages into the reusable `conversation` consta
 
 The first Responses API call uses `gpt-4.1-mini`, `tools: financialTools`, `store: false`, and `max_output_tokens: 300`. The route allows at most one call, checks its name, validates arguments, resolves identity, and executes the aggregate. A second request includes the conversation, selected function-call item, and JSON `function_call_output` linked by `call_id`; `tool_choice: "none"` prevents another call. Without a tool call, the first response is used. The existing `{ message: answer }` UI contract and Week 2 conversation limits remain.
 
-Missing authentication returns 401; missing key 503; invalid history 400; unknown Pocket user 404; multiple/unsupported calls or invalid arguments 502; empty output 502; caught failures 500. These are current code paths, not a claim that every status was exercised against production. The current route checks falsy output text and logs the caught error object; the Week 2 notes above describe the earlier implementation.
+Missing authentication returns 401; missing key 503; invalid history 400; unknown Pocket user 404; multiple/unsupported calls or invalid arguments 502; empty output 502; caught failures 500. These describe the Week 3 implementation. See the Week 4 flow below for the expanded route.
 
 Balances, bills, individual transactions, budgets, savings goals, and write operations are unsupported. The temporary development spending endpoint and timezone diagnostic were removed. Vercel's runtime timezone and full cross-account API isolation remain unverified; see [results.md](results.md).
+
+## Week 4 — Expanded Financial Tool Architecture
+
+The Week 4 research traced Pocket's existing bill, budget, transaction, and account logic. The three new retrieval functions reuse the existing records and calculation rules. They accept the internal Pocket user ID separately from model-generated arguments.
+
+| Tool | Data and behavior |
+| --- | --- |
+| `get_monthly_category_spending` | Existing monthly aggregate of completed expenses, optionally scoped to a category. |
+| `get_upcoming_bills` | Active user bills classified separately as overdue or upcoming. Classifies due dates on the Eastern calendar and uses one stored next due date per recurring bill. Defaults to 45 days and accepts 1–90 days. |
+| `get_budget_status` | Current-month configured budgets, completed category spending, and remaining amounts. Rounds percentage used to a whole number. Below 75% is on track, 75–100% is getting close, and above 100% is over budget. Preserves negative remaining amounts. |
+| `get_recent_account_activity` | Completed income and expense records, newest first, with optional type and category filters and a `hasMore` indicator. Defaults to 30 days and 10 records, with bounds of 1–365 days and 1–25 records. The AI validator requires a null account ID until verified account-name resolution is available. |
+
+`lib/ai/tool-definitions.ts` exposes the four strict schemas. `lib/ai/tool-validation.ts` validates arguments at runtime. `lib/ai/financial-tools.ts` performs scoped Prisma reads and returns structured values, including Decimal-formatted monetary amounts. Bill results keep overdue and upcoming totals separate. Budget results distinguish an unconfigured budget from a budget with zero spending, and the activity response identifies truncated lists.
+
+`app/api/ai/route.ts` authenticates the request with Clerk. When the initial OpenAI response asks for tools, the route rejects batches over three calls and checks all tool names against the allowlist before dispatch. It resolves the internal Pocket ID once, then validates each call's arguments before executing that read. The route pairs each result with its original `call_id` and sends the calls and outputs in one final Responses API request with `tool_choice: "none"`. Requests with no tool calls use the initial response. Unsupported calls, oversized batches, and financial tool failures return HTTP 502.
+
+The prompt supplies the current Eastern date. Budget and recent-activity query boundaries use server-local dates. Production timezone behavior remains to be verified.

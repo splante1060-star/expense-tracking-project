@@ -106,3 +106,37 @@ Local scripts: `test-ai-tool-validation.ts`, `test-ai-user-isolation.ts`, `test-
 - Week 2 history boundary/truncation and concurrent nonempty submission tests remain outstanding. No broad prompt-injection resistance or reliability score is established.
 
 Week 3 usage reported by OpenAI: **15,141 tokens, 28 requests, $0 spent**. No per-test cost, latency, or token allocation was captured. See [results.md](results.md) for observed values and verified Git checkpoints.
+
+## Week 4 — Expanded Financial Function Evaluation
+
+Evidence comes from the Week 4 Deliverables 1–4 write-ups, the recorded terminal output, and the repository's implementation and Git history. The checks below retain their original test scope.
+
+| Goal | Method and criterion | Evidence scope |
+| --- | --- | --- |
+| Financial calculations | Compare the standalone tools with Pocket records and test date boundaries, Decimal arithmetic, budget thresholds, empty results, and pagination. | Local development records, deterministic helper tests, and controlled mocks. |
+| Response accuracy | Ask one representative question per tool and compare amounts, dates, status, and ordering with the previously verified Pocket results. | Four local chat checks, one per tool. |
+| Multiple function calls | Repeat the spending-and-budget question that originally returned HTTP 502 and compare both values in the combined answer. | One recorded two-tool retest. |
+| Missing data and unsupported actions | Check empty spending, an unconfigured budget, and refusal to create a transaction. Follow up to test continuity and manual guidance. | Local conversational checks. |
+| Authentication and isolation | Check a signed-out API request and compare four retrieval scenarios across two separately authenticated accounts. | Local HTTP 401 and four two-account response checks. |
+| Read-only enforcement | Inspect the tool allowlist and Prisma reads, search the AI paths for direct financial write methods, and observe a refused write request. | Code review, a scoped static search, and a chat test. |
+
+### Regression Commands
+
+| Command | Recorded Week 4 result |
+| --- | --- |
+| `npx tsx scripts/test-ai-upcoming-bills-dates.ts` | 9/9 in Deliverable 2 |
+| `npx tsx scripts/test-ai-upcoming-bills-mock.ts` | 3/3 in Deliverable 2 |
+| `npx tsx scripts/test-ai-budget-status-mock.ts` | 8/8 in Deliverables 2 and 4 |
+| `TZ=America/New_York npx tsx scripts/test-ai-recent-activity.ts` | 10/10 in Deliverables 2 and 4 |
+| `npx tsc --noEmit` | Passed in the recorded Deliverable 4 run |
+
+The upcoming-bills suites were run in Deliverable 2. The recorded Deliverable 4 terminal output covers recent activity, budget mocks, and TypeScript. The documentation update reviewed the evidence without rerunning those tests or making live OpenAI or database requests.
+
+### Remaining Verification After Week 4
+
+- Verify production timezone behavior at date boundaries and repeat the two-account checks in production.
+- Exercise malformed tool calls and dependency failures at the full route boundary. The Deliverable 2 invalid-input observations cover response bodies for the tested cases. HTTP statuses were checked separately only where recorded.
+- Measure broader authorization and read-only behavior with additional cases and a before/after database audit. The static search covered selected direct write patterns, and the observed isolation results cover the four tested scenarios.
+- Exercise the three-call boundary and oversized batches end to end. The recorded successful combined request used two tools.
+
+See [results.md](results.md#week-4--expanded-financial-function-calling--testing) for the observations and the implementation checkpoint.

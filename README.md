@@ -83,3 +83,7 @@ Features, architecture, and documentation will continue to evolve as the applica
 ### Week 3 milestone — November 16, 2026
 
 Pocket AI now answers monthly spending questions using one authenticated, read-only function. Pocket calculates completed expense totals and counts; OpenAI explains the result. Production observations and local validation/security/failure tests are documented in [EGR404 results](docs/egr404/results.md#week-3--function-calling--financial-data-integration). Full production cross-account isolation and Vercel timezone behavior remain unverified. Week 3 OpenAI usage reported: **15,141 tokens, 28 requests, $0 spent**.
+
+### Week 4 milestone — November 24, 2026
+
+Pocket AI now answers questions about monthly spending, upcoming and overdue bills, current-month budgets, and recent transactions. It can combine up to three approved read-only tool calls in one answer. The Week 4 materials record four financial accuracy checks, a successful combined spending-and-budget retest, and four user-isolation checks across two authenticated accounts. See the [Week 4 results](docs/egr404/results.md#week-4--expanded-financial-function-calling--testing) for scope, limitations, and Git checkpoints.

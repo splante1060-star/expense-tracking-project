@@ -44,20 +44,15 @@ The primary goals of Pocket AI are to:
 
 ---
 
-## Current Progress — November 16, 2026
+## Current Progress — November 24, 2026
 
-- Completed Week 1: privacy research, local Python connection test, and prompt refinement. `scripts/test_openai.py` preserves the fixed-prompt prototype.
-- Completed Week 2 implementation and recorded testing: authenticated Next.js OpenAI integration, the `/ai` chat UI, frontend/backend response validation, friendly errors, and a synchronous request guard.
-- Three financial prompt boundary tests passed (3/3). An invalid conversation role returned HTTP 400, and a contextual follow-up correctly used earlier messages.
-- The frontend submits the latest 10 messages, including the current question; the backend accepts 1–10 messages with at most 1,000 characters each. History boundary tests have not yet been performed.
-- Conversation state is lost on refresh. Requests use `store: false`, which is not a zero-retention guarantee.
-- Completed Week 3 Deliverables 1–4: database/function-calling research, read-only monthly spending and date validation, OpenAI integration, and production plus local testing.
-- The approved `get_monthly_category_spending` tool retrieves completed expense totals and counts for the authenticated Pocket user. Other financial tools and While You Were Away remain planned.
-- Production spending answers matched available records; local argument validation passed 9/9 and mock identity checks passed 4/4. Database and OpenAI failure simulations passed 2/2 and 3/3 respectively.
-- Full production cross-account isolation, direct API/database failure tests, and Vercel timezone verification remain outstanding.
-- Week 3 OpenAI usage reported by OpenAI: **15,141 tokens, 28 requests, $0 spent**. These are weekly totals, not per-test measurements.
-- Deliverable 5 documentation is prepared; this update does not create a documentation commit.
-- See [architecture.md](architecture.md), [evaluation.md](evaluation.md), and [results.md](results.md) for implementation details, evidence, Git checkpoints, and limitations.
+- Week 1 established the local OpenAI connection and refined Pocket AI's instructions. Week 2 added the authenticated Next.js integration, the `/ai` interface, and bounded multi-turn conversation.
+- Week 3 added authenticated, read-only monthly category spending. Week 4 added upcoming bills, current-month budget status, and recent completed transactions.
+- The API supports up to three approved tool calls from one model response. Pocket resolves user identity on the server, validates tool arguments, and returns the calculated values for OpenAI to explain.
+- Week 4 recorded 4/4 local financial accuracy checks, a successful combined spending-and-budget retest, a signed-out HTTP 401, and 4/4 user-isolation checks with two authenticated accounts.
+- Conversation state is lost on refresh. The frontend sends the latest 10 messages and the backend accepts 1–10 messages with at most 1,000 characters each. OpenAI requests use `store: false`, which does not guarantee zero retention.
+- Production timezone verification and production cross-account verification remain open. While You Were Away remains planned.
+- See [architecture.md](architecture.md), [evaluation.md](evaluation.md), and [results.md](results.md) for the implementation, evidence, Git checkpoints, and limitations.
 
 ## Planned Architecture
 
@@ -135,22 +130,14 @@ The AI page, API route, chat component, connection script, and EGR404 documentat
 
 ### Pocket AI Assistant
 
-Users will be able to ask questions about their own financial activity using natural language.
+Signed-in users can ask about their own Pocket records through four controlled tools:
 
-Rather than sending the entire Pocket database to the AI model, the system will explore using controlled tools or functions to retrieve only the information relevant to a user's question.
+- `get_monthly_category_spending` returns completed expense totals and counts for a month.
+- `get_upcoming_bills` separates active overdue bills from upcoming bills.
+- `get_budget_status` reports current-month limits, spending, and remaining amounts for configured budgets.
+- `get_recent_account_activity` returns a bounded, newest-first list of completed transactions.
 
-Potential tools may include:
-
-```text
-getAccountBalances()
-getTransactions()
-getSpendingSummary()
-getUpcomingBills()
-getBudgetStatus()
-getRecentNotifications()
-```
-
-The final tool set will depend on the needs of the project and concepts covered during EGR404.
+Account balances and account-name filters are outside the current tool scope.
 
 ### While You Were Away
 
@@ -263,7 +250,8 @@ These resources will serve as implementation references rather than fixed archit
 
 - Completed Week 3: authenticated monthly spending access through one read-only tool.
 - Completed Week 3: grounded local and production conversation tests, validation, and security/failure simulations.
-- Remaining: broader financial tools and stronger production isolation, failure, and timezone verification.
+- Completed Week 4: three additional read-only tools, bounded multi-function calling, local financial accuracy and isolation checks, and repository documentation.
+- Remaining: production isolation, service failure, and timezone verification.
 
 ### Phase 3 — Intelligent Summaries (Weeks 5–6)
 

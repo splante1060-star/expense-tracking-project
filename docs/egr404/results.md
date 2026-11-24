@@ -232,3 +232,62 @@ Prepared the Week 3 repository documentation: updated the overview and architect
 | `0f0995f` | `test(ai): strengthen financial tool validation and security` | Validator, identity helper, route integration, four test scripts |
 
 The prior Week 2 documentation checkpoint is `8d6a45f` (`feat(ai): egr404 documents week 2 updates`). The four Week 3 checkpoints above contain implementation/testing files, not this Week 3 Markdown update. No separate research commit or new documentation hash is asserted. This update prepares Deliverable 5 documentation for review; committing it remains pending. No source-code changes or new Git commit were made as part of this documentation task.
+
+## Week 4 — Expanded Financial Function Calling & Testing
+
+The Week 4 overview names the target capabilities. The sections below follow the completed deliverable write-ups, which recorded standalone tool implementation and testing in Deliverable 2, then OpenAI integration and response accuracy in Deliverable 3.
+
+### Deliverable 1 — Additional Financial Functions
+
+Reviewed Pocket's schema and existing bill, budget, and transaction logic. The research identified three additional read-only tools and defined their query scope, date windows, filters, and structured outputs. The design retained server-resolved user identity and Decimal precision.
+
+### Deliverable 2 — Standalone Financial Tools
+
+| Tool | Recorded verification |
+| --- | --- |
+| Upcoming bills | Local results matched Pocket's Bills page. Nine deterministic checks covered date classification, the inclusive 45-day boundary, and Eastern date conversion. Three controlled mock checks covered empty results, active-bill filtering, and Decimal addition. |
+| Budget status | Local results matched the Budgets page. Eight controlled mock checks covered status thresholds, overspending, zero spending, empty budgets, rounding, and precision. |
+| Recent account activity | Local checks covered filters, ordering, empty results, and invalid account references. Ten deterministic checks covered date windows, Eastern daylight saving, pagination, empty activity, and invalid ranges or limits. |
+
+The temporary testing endpoint was removed once the standalone checks were complete.
+
+### Deliverable 3 — Integration and Financial Response Accuracy
+
+Registered four strict tool schemas and added runtime argument validation. Pocket calculates and formats the results before the model explains them. The initial integration handled one tool call per request. Four local chat checks matched the previously verified Pocket data:
+
+| Scenario | Observed response |
+| --- | --- |
+| November dining spending | $12.95 |
+| November dining budget | $300.00 limit, $12.95 spent, $287.05 remaining, on track |
+| Recent activity | Four matching transactions with the verified dates and amounts in newest-first order |
+| Upcoming and overdue bills | $1,303.00 upcoming and $158.98 overdue, reported separately |
+
+### Deliverable 4 — Function Calling and Security Testing
+
+Four initial checks returned the expected September grocery total and count, no income within the 30-day activity window, one upcoming Rent bill and two overdue bills, and an explanation that live account balances are unavailable.
+
+A combined spending-and-budget question initially returned HTTP 502 because the route allowed only one tool call. After the route was updated to accept up to three approved calls from the initial model response, the same question returned $12.95 spent and $287.05 remaining against the $300.00 dining budget, with on-track status.
+
+- Missing-data checks correctly reported no matching grocery expenses and no configured Housing budget. Pocket AI refused to create a $500 Shopping expense. The follow-up retained the amount, category, transaction type, and account and provided manual guidance. The instructions were updated to use Pocket's website terminology and avoid inventing interface controls.
+- A signed-out local POST to `/api/ai` returned HTTP 401.
+- Four user-isolation checks passed across two authenticated accounts. Account A had $4.68 in September grocery spending across two completed transactions, along with configured budgets, bills, and recent activity. Account B returned empty results for the corresponding four questions.
+- Reviewed Prisma operations were reads. A scoped static search found no direct financial write operations matching the checked patterns, and the chat refused the attempted write.
+- Final recorded regressions passed 10/10 for recent activity and 8/8 for budget mocks. TypeScript completed without errors. Upcoming-bills test counts come from Deliverable 2.
+
+### Deliverable 5 — Git Commit and Documentation
+
+Updated the repository overview, architecture, evaluation, and results to capture the Week 4 implementation and recorded checks. Verified implementation and test checkpoints from Git history, oldest first:
+
+| Commit | Actual subject |
+| --- | --- |
+| `3f7339a` | `feat(ai): add read-only upcoming bills retrieval` |
+| `2c3ed65` | `test(ai): validate upcoming bills date boundaries and edge cases` |
+| `ac74c00` | `test(ai): remove temporary endpoint` |
+| `5e2d5bb` | `feat(ai): add read-only budget status retrieval` |
+| `9f4adcf` | `test(ai): validate budget status calculations and edge cases` |
+| `58f1560` | `feat(ai): add read-only recent account activity retrieval` |
+| `bdb12ef` | `test(ai): validate recent activity date boundaries and pagination` |
+| `f639bef` | `feat(ai): integrate four read-only financial tools` |
+| `be1c00d` | `fix(ai): support multiple read-only financial tool calls` |
+
+The implementation checkpoint `be1c00d` matched local `main` and the local `origin/main` tracking ref when reviewed. `git show --check be1c00d` still flags trailing whitespace in `app/api/ai/route.ts:152`. This Markdown update is pending a documentation commit.
