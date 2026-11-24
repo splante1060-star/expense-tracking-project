@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SubmitEvent } from "react";
 
 type Message = {
@@ -15,6 +15,15 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestInProgress = useRef(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages, isLoading, error]);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     if (requestInProgress.current) return;
@@ -77,8 +86,15 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="min-h-80 rounded-xl border border-(--pocket-blue-soft) bg-white p-4">
+    <div className="flex min-h-0 flex-col gap-4">
+      <div
+        ref={messagesContainerRef}
+        role="log"
+        aria-label="Pocket AI conversation"
+        aria-live="polite"
+        aria-relevant="additions text"
+        className="h-[min(60vh,34rem)] min-h-64 overflow-y-auto overscroll-contain rounded-xl border border-(--pocket-blue-soft) bg-white p-4"
+      >
         {messages.length === 0 ? (
           <div className="flex min-h-64 flex-col items-center justify-center">
             <p className="text-sm text-(--pocket-blue-medium)">
@@ -120,14 +136,14 @@ export default function ChatInterface() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="flex shrink-0 gap-2">
         <input
           type="text"
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder="Ask Pocket AI..."
           aria-label="Message Pocket AI"
-          className="flex-1 rounded-lg border border-(--pocket-blue-soft) bg-white px-4 py-3 text-sm text-(--pocket-blue-dark)"
+          className="min-w-0 flex-1 rounded-lg border border-(--pocket-blue-soft) bg-white px-4 py-3 text-sm text-(--pocket-blue-dark)"
         />
 
         <button

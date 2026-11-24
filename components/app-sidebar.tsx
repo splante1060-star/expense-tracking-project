@@ -13,6 +13,7 @@ import {
   WalletCards,
   Settings,
   LockKeyhole,
+  Sparkles,
 } from "lucide-react";
 
 const navItems = [
@@ -45,6 +46,11 @@ const navItems = [
     label: "Reports",
     href: "/reports",
     icon: ChartNoAxesCombined,
+  },
+  {
+    label: "Pocket AI",
+    href: "/ai",
+    icon: Sparkles,
   },
   {
     label: "Accounts",
@@ -105,7 +111,7 @@ export default function AppSidebar() {
         })}
       </nav>
       {/* BOTTOM CARD */}
-      <div className="mt-auto rounded-2xl bg-(--pocket-blue-light) p-3">
+      {/* <div className="mt-auto rounded-2xl bg-(--pocket-blue-light) p-3">
         <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-(--pocket-blue) shadow-sm">
           <LockKeyhole size={18} />
         </div>
@@ -124,8 +130,8 @@ export default function AppSidebar() {
         >
           Learn more →
         </Link>
-      </div>
-      <p className="mt-3 px-1 text-[11px] text-slate-400">
+      </div> */}
+      <p className="mt-auto px-1 pb-3 text-[11px] text-slate-400">
         Made by Sophie Plante ♡
       </p>
     </aside>
