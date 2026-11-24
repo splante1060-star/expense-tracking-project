@@ -300,3 +300,144 @@ export async function getBudgetStatus(
     totalRemaining: totalBudget.minus(totalSpent).toFixed(2),
   };
 }
+
+export type RecentAccountActivityInput = {
+  days: number;
+  limit: number;
+  type: "INCOME" | "EXPENSE" | null;
+  category: CategoryType | null;
+  accountId: string | null;
+};
+
+export type RecentAccountActivityItem = {
+  description: string | null;
+  amount: string;
+  type: "INCOME" | "EXPENSE";
+  category: CategoryType;
+  date: string;
+  accountName: string;
+  isRecurring: boolean;
+};
+
+export type RecentAccountActivityOutput = {
+  days: number;
+  limit: number;
+  returnedCount: number;
+  hasMore: boolean;
+  startDate: string;
+  endDateExclusive: string;
+  transactions: RecentAccountActivityItem[];
+};
+
+export async function getRecentAccountActivity(
+  input: RecentAccountActivityInput,
+  pocketUserId: string,
+): Promise<RecentAccountActivityOutput> {
+  if (!pocketUserId.trim()) {
+    throw new Error("Pocket user ID is required");
+  }
+
+  const { days, limit, type, category, accountId } = input;
+
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    throw new Error("Days must be between 1 and 365");
+  }
+
+  if (!Number.isInteger(limit) || limit < 1 || limit > 25) {
+    throw new Error("Limit must be between 1 and 25");
+  }
+
+  if (type !== null && type !== "INCOME" && type !== "EXPENSE") {
+    throw new Error("Invalid transaction type");
+  }
+
+  if (category !== null && !Object.values(CategoryType).includes(category)) {
+    throw new Error("Invalid transaction category");
+  }
+
+  if (accountId !== null) {
+    if (!accountId.trim()) {
+      throw new Error("Invalid account ID");
+    }
+
+    const account = await db.account.findFirst({
+      where: {
+        id: accountId,
+        userId: pocketUserId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!account) {
+      throw new Error("Account not found");
+    }
+  }
+
+  // Use calendar-day boundaries consistent with Pocket's
+  // existing server-local date construction.
+  const now = new Date();
+
+  const startDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - days + 1,
+  );
+
+  const endDateExclusive = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+
+  const transactions = await db.transaction.findMany({
+    where: {
+      userId: pocketUserId,
+      status: "COMPLETED",
+      date: {
+        gte: startDate,
+        lt: endDateExclusive,
+      },
+      ...(type !== null ? { type } : {}),
+      ...(category !== null ? { category } : {}),
+      ...(accountId !== null ? { accountId } : {}),
+    },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    take: limit + 1,
+    select: {
+      description: true,
+      amount: true,
+      type: true,
+      category: true,
+      date: true,
+      recurringTransactionId: true,
+      account: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  const hasMore = transactions.length > limit;
+  const returnedTransactions = transactions.slice(0, limit);
+
+  return {
+    days,
+    limit,
+    returnedCount: returnedTransactions.length,
+    hasMore,
+    startDate: startDate.toISOString(),
+    endDateExclusive: endDateExclusive.toISOString(),
+    transactions: returnedTransactions.map((transaction) => ({
+      description: transaction.description,
+      amount: transaction.amount.toFixed(2),
+      type: transaction.type,
+      category: transaction.category,
+      date: transaction.date.toISOString(),
+      accountName: transaction.account.name,
+      isRecurring: transaction.recurringTransactionId !== null,
+    })),
+  };
+}
