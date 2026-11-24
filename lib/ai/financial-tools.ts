@@ -6,7 +6,9 @@ import {
   getEasternDateKey,
   addCalendarDays,
   classifyBillDueDate,
+  getRecentActivityDateRange,
 } from "./date-utils";
+import { paginateActivityResults } from "./pagination-utils";
 import { Prisma } from "../generated/prisma/client";
 import { db } from "../prisma";
 
@@ -375,21 +377,7 @@ export async function getRecentAccountActivity(
     }
   }
 
-  // Use calendar-day boundaries consistent with Pocket's
-  // existing server-local date construction.
-  const now = new Date();
-
-  const startDate = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - days + 1,
-  );
-
-  const endDateExclusive = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + 1,
-  );
+  const { startDate, endDateExclusive } = getRecentActivityDateRange(days);
 
   const transactions = await db.transaction.findMany({
     where: {
@@ -420,13 +408,16 @@ export async function getRecentAccountActivity(
     },
   });
 
-  const hasMore = transactions.length > limit;
-  const returnedTransactions = transactions.slice(0, limit);
+  const {
+    items: returnedTransactions,
+    returnedCount,
+    hasMore,
+  } = paginateActivityResults(transactions, limit);
 
   return {
     days,
     limit,
-    returnedCount: returnedTransactions.length,
+    returnedCount,
     hasMore,
     startDate: startDate.toISOString(),
     endDateExclusive: endDateExclusive.toISOString(),

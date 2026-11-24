@@ -68,3 +68,26 @@ export function classifyBillDueDate(
 
   return "upcoming";
 }
+
+export function getRecentActivityDateRange(days: number, now = new Date()) {
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    throw new Error("Days must be between 1 and 365");
+  }
+
+  const startDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - days + 1,
+  );
+
+  const endDateExclusive = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+
+  return {
+    startDate,
+    endDateExclusive,
+  };
+}
