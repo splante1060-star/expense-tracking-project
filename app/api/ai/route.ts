@@ -1,12 +1,23 @@
 import { auth } from "@clerk/nextjs/server";
 import { financialTools } from "@/lib/ai/tool-definitions";
 import { db } from "@/lib/prisma";
-import { getMonthlyCategorySpending } from "@/lib/ai/financial-tools";
+
+import {
+  getMonthlyCategorySpending,
+  getUpcomingBills,
+  getBudgetStatus,
+  getRecentAccountActivity,
+} from "@/lib/ai/financial-tools";
 import {
   PocketUserNotFoundError,
   resolvePocketUserId,
 } from "@/lib/ai/user-context";
-import { parseMonthlySpendingArguments } from "@/lib/ai/tool-validation";
+import {
+  parseMonthlySpendingArguments,
+  parseUpcomingBillsArguments,
+  parseBudgetStatusArguments,
+  parseRecentActivityArguments,
+} from "@/lib/ai/tool-validation";
 
 import OpenAI from "openai";
 
@@ -61,32 +72,77 @@ export async function POST(request: Request) {
 
     const client = new OpenAI();
 
-    const instructions =
-      "You are Pocket AI, a friendly, kind, helpful assistant that helps users understand " +
-      "their financial information stored in Pocket. " +
-      "Use warm, plain, nonjudgmental language. " +
-      "Pocket is the source of truth for financial records, dates, and calculations. " +
-      "You have access to one read-only financial tool: get_monthly_category_spending. " +
-      "This tool retrieves completed expense totals and transaction counts for a specified month, " +
-      "optionally filtered by category. " +
-      "When a user asks about their actual monthly spending, use the tool to retrieve the data. " +
-      "For a question about overall spending, set category to null. " +
-      "For category-specific spending, use the appropriate category. " +
-      "Never invent financial amounts, transaction counts, or other account information. " +
-      "Only report financial values supported by the tool result. " +
-      "If the user does not specify a month, interpret 'this month' using the current month " +
-      "in America/New_York. If the requested period is unclear, ask for clarification. " +
-      "Do not assume the user has transactions for a requested month. " +
-      "You cannot currently retrieve account balances, upcoming bills, individual transactions, " +
-      "budgets, savings goals, or other financial details outside the available tool. " +
-      "If asked for unavailable information, explain the limitation without guessing. " +
-      "Your tools are strictly read-only. You cannot create, update, or delete financial records, " +
-      "move money, or perform transactions. " +
-      "Do not offer unsolicited financial tips, recommend financial decisions, " +
-      "or provide personalized investment recommendations. " +
-      "When introducing yourself, explain that you can answer questions about monthly spending " +
-      "using Pocket's records. Do not claim access to unsupported features. " +
-      "Keep responses concise, usually one or two sentences.";
+    const instructions = `
+      You are Pocket AI, a friendly, kind, helpful assistant that helps users
+      understand their financial information stored in Pocket.
+
+      Use warm, plain, nonjudgmental language.
+
+      POCKET IS THE SOURCE OF TRUTH:
+      Pocket calculates. Pocket AI explains.
+
+      Use Pocket's financial tools to retrieve actual financial information.
+      Never invent, estimate, or modify financial amounts, transaction counts,
+      dates, balances, or other account information.
+
+      AVAILABLE READ-ONLY TOOLS:
+      1. get_monthly_category_spending
+      Retrieve completed expense totals and transaction counts for a specified
+      month, optionally filtered by category. Use this for complete monthly
+      spending totals rather than summing recent transaction lists.
+
+      2. get_upcoming_bills
+      Retrieve active bills and separate overdue bills from upcoming bills.
+      Each bill is included only once using its stored due date.
+      Do not describe these results as a complete forecast of recurring payments.
+      Overdue totals and upcoming totals must be distinguished.
+
+      3. get_budget_status
+      Retrieve configured budgets for the current month, including limits,
+      completed spending, remaining amounts, and budget statuses.
+      Totals include only categories with configured budgets.
+      Do not describe these totals as all spending across Pocket.
+      A missing budget is not the same as a configured budget with zero spending.
+
+      4. get_recent_account_activity
+      Retrieve a limited, newest-first list of completed transactions.
+      Use this for individual recent transactions, not complete spending totals.
+      If hasMore is true, acknowledge that additional matching transactions exist.
+      The isRecurring field refers to the recurring-transaction relationship;
+      it does not necessarily identify transactions generated from recurring bills.
+      Account-specific filtering is not yet available through the AI interface.
+
+      FINANCIAL RESPONSE ACCURACY:
+      Report exact amounts returned by Pocket's tools.
+      Do not round away cents or invent supporting calculations.
+      Do not invent transactions, budgets, due dates, or account details.
+      Do not infer that missing records mean the user has no financial activity
+      outside the requested filters or date range.
+      Do not claim a result represents all transactions when it is limited.
+      If no matching records exist, explain that no matching data was found.
+      If a tool cannot answer the question, acknowledge the limitation.
+      Do not calculate unsupported totals from partial information.
+
+      DATE HANDLING:
+      Interpret "this month" using the current month in America/New_York.
+      Use the current date supplied in these instructions.
+      For upcoming bills, use a 45-day window when no period is specified.
+      For recent activity, default to 30 days and 10 transactions.
+      If a requested period is unclear and cannot be reasonably interpreted,
+      ask for clarification.
+
+      SECURITY AND CAPABILITIES:
+      All financial tools are read-only.
+      You cannot create, update, or delete financial records.
+      You cannot move money, perform transactions, or modify budgets or bills.
+      You cannot retrieve live account balances or savings goals using these tools.
+      Never claim access to information that the available tools do not provide.
+      Do not provide personalized investment recommendations or unsolicited
+      financial advice.
+
+      Keep responses concise, normally one or two sentences, while accurately
+      explaining the financial results.
+      `;
 
     const currentEasternDate = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/New_York",
@@ -126,28 +182,20 @@ export async function POST(request: Request) {
     if (functionCalls.length === 1) {
       const call = functionCalls[0];
 
-      // only execute functions explicitly approved by Pocket
-      if (call.name !== "get_monthly_category_spending") {
+      const supportedTools = [
+        "get_monthly_category_spending",
+        "get_upcoming_bills",
+        "get_budget_status",
+        "get_recent_account_activity",
+      ];
+
+      if (!supportedTools.includes(call.name)) {
         return Response.json(
           { error: "Unsupported function call" },
           { status: 502 },
         );
       }
 
-      // parse and validate model-generated arguments
-      let args: ReturnType<typeof parseMonthlySpendingArguments>;
-
-      try {
-        args = parseMonthlySpendingArguments(call.arguments);
-      } catch {
-        return Response.json(
-          { error: "Invalid function arguments" },
-          { status: 502 },
-        );
-      }
-
-      // resolve the Pocket user from the authenticated Clerk session
-      // userId comes from the existing auth() call above
       const pocketUserId = await resolvePocketUserId(
         userId,
         async (clerkUserId) => {
@@ -160,16 +208,49 @@ export async function POST(request: Request) {
         },
       );
 
-      // Pocket calculates the spending total
-      const result = await getMonthlyCategorySpending(
-        {
-          month: args.month,
-          category: args.category,
-        },
-        pocketUserId,
-      );
+      let result: unknown;
 
-      // send verified result back for a final explanation
+      // Pocket validates and executes the selected tool
+      // all functions perform read-only database queries
+      try {
+        switch (call.name) {
+          case "get_monthly_category_spending": {
+            const args = parseMonthlySpendingArguments(call.arguments);
+
+            result = await getMonthlyCategorySpending(args, pocketUserId);
+            break;
+          }
+
+          case "get_upcoming_bills": {
+            const args = parseUpcomingBillsArguments(call.arguments);
+
+            result = await getUpcomingBills(args, pocketUserId);
+            break;
+          }
+
+          case "get_budget_status": {
+            const args = parseBudgetStatusArguments(call.arguments);
+
+            result = await getBudgetStatus(args, pocketUserId);
+            break;
+          }
+
+          case "get_recent_account_activity": {
+            const args = parseRecentActivityArguments(call.arguments);
+
+            result = await getRecentAccountActivity(args, pocketUserId);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error("Pocket AI financial tool failed:", error);
+
+        return Response.json(
+          { error: "Unable to complete financial request" },
+          { status: 502 },
+        );
+      }
+
       finalResponse = await client.responses.create({
         model: "gpt-4.1-mini",
         instructions: contextualInstructions,
@@ -184,7 +265,7 @@ export async function POST(request: Request) {
         ],
         tool_choice: "none",
         store: false,
-        max_output_tokens: 300,
+        max_output_tokens: 450,
       });
     }
 
