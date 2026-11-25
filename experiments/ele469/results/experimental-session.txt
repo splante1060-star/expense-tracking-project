@@ -1,0 +1,1188 @@
+Last login: Mon Nov 16 12:15:50 on ttys004
+sophieplante@Sophies-Air ~ % brew install postgresql@17
+==> Auto-updating Homebrew...
+...
+...
+Success. You can now start the database server using:
+
+    '/opt/homebrew/opt/postgresql@17/bin/pg_ctl' -D /Users/sophieplante/ele469-postgres/data -l logfile start
+
+sophieplante@Sophies-Air ~ % mkdir -p ~/ele469-postgres/socket
+chmod 700 ~/ele469-postgres/socket
+sophieplante@Sophies-Air ~ % "$(brew --prefix postgresql@17)/bin/pg_ctl" \
+  -D "$HOME/ele469-postgres/data" \
+  -l "$HOME/ele469-postgres/server.log" \
+  -o "-p 5433 -h 127.0.0.1 -k $HOME/ele469-postgres/socket" \
+  start
+waiting for server to start.... done
+server started
+sophieplante@Sophies-Air ~ % "$(brew --prefix postgresql@17)/bin/pg_ctl" \
+  -D "$HOME/ele469-postgres/data" status
+pg_ctl: server is running (PID: 49229)
+/opt/homebrew/Cellar/postgresql@17/17.12/bin/postgres "-D" "/Users/sophieplante/ele469-postgres/data" "-p" "5433" "-h" "127.0.0.1" "-k" "/Users/sophieplante/ele469-postgres/socket"
+sophieplante@Sophies-Air ~ % "$(brew --prefix postgresql@17)/bin/psql" \
+  -h "$HOME/ele469-postgres/socket" \
+  -p 5433 \
+  -d postgres
+psql (17.12 (Homebrew))
+Type "help" for help.
+
+postgres=# SHOW data_directory;
+              data_directory              
+------------------------------------------
+ /Users/sophieplante/ele469-postgres/data
+(1 row)
+
+postgres=# SHOW port;
+ port 
+------
+ 5433
+(1 row)
+
+postgres=# SHOW listen_addresses;
+ listen_addresses 
+------------------
+ 127.0.0.1
+(1 row)
+
+postgres=# CREATE ROLE ele469_user WITH LOGIN;
+CREATE ROLE
+postgres=# \password ele469_user
+Enter new password for user "ele469_user": 
+Enter it again: 
+postgres=# CREATE DATABASE ele469_test OWNER ele469_user;
+CREATE DATABASE
+postgres=# REVOKE CONNECT ON DATABASE ele469_test FROM PUBLIC;
+REVOKE
+postgres=# \l ele469_test
+                                                           List of databases
+    Name     |    Owner    | Encoding | Locale Provider |   Collate   |    Ctype    | Locale | ICU Rules |      Access privileges      
+-------------+-------------+----------+-----------------+-------------+-------------+--------+-----------+-----------------------------
+ ele469_test | ele469_user | UTF8     | libc            | en_US.UTF-8 | en_US.UTF-8 |        |           | =T/ele469_user             +
+             |             |          |                 |             |             |        |           | ele469_user=CTc/ele469_user
+(1 row)
+
+postgres=# \du ele469_user
+      List of roles
+  Role name  | Attributes 
+-------------+------------
+ ele469_user | 
+
+postgres=# \q
+sophieplante@Sophies-Air ~ % "$(brew --prefix postgresql@17)/bin/psql" \
+  -h 127.0.0.1 \
+  -p 5433 \
+  -U ele469_user \
+  -d ele469_test \
+  -W
+Password: 
+psql (17.12 (Homebrew))
+Type "help" for help.
+
+ele469_test=> SELECT current_database(),
+       current_user,
+       inet_server_addr(),
+       inet_server_port();
+ current_database | current_user | inet_server_addr | inet_server_port 
+------------------+--------------+------------------+------------------
+ ele469_test      | ele469_user  | 127.0.0.1        |             5433
+(1 row)
+
+ele469_test=> \q
+sophieplante@Sophies-Air ~ % cd ~/expense-tracking-project
+sophieplante@Sophies-Air expense-tracking-project % pwd
+/Users/sophieplante/expense-tracking-project
+sophieplante@Sophies-Air expense-tracking-project % zsh
+sophieplante@Sophies-Air expense-tracking-project % read -rs "TEST_DB_PASSWORD?Enter ELE469 database password: "
+echo
+
+ENCODED_PASSWORD=$(printf '%s' "$TEST_DB_PASSWORD" | node -e 'process.stdout.write(encodeURIComponent(require("fs").readFileSync(0, "utf8")))')
+
+export DATABASE_URL="postgresql://ele469_user:${ENCODED_PASSWORD}@127.0.0.1:5433/ele469_test"
+export DIRECT_URL="$DATABASE_URL"
+
+unset TEST_DB_PASSWORD ENCODED_PASSWORD
+Enter ELE469 database password: 
+sophieplante@Sophies-Air expense-tracking-project % node <<'NODE'
+for (const name of ["DATABASE_URL", "DIRECT_URL"]) {
+    const url = new URL(process.env[name]);
+
+    const valid =
+        url.protocol === "postgresql:" &&
+        url.hostname === "127.0.0.1" &&
+        url.port === "5433" &&
+        url.pathname === "/ele469_test" &&
+        url.username === "ele469_user" &&
+        url.password.length > 0 &&
+        url.search === "" &&
+        url.hash === "";
+
+    if (!valid) {
+        console.error(`${name}: UNSAFE CONNECTION`);
+        process.exit(1);
+    }
+
+    console.log(`${name}: Verified`);
+    console.log(`  Host: ${url.hostname}`);
+    console.log(`  Port: ${url.port}`);
+    console.log(`  Database: ${url.pathname.slice(1)}`);
+    console.log(`  User: ${url.username}`);
+}
+
+if (process.env.DATABASE_URL !== process.env.DIRECT_URL) {
+    console.error("Database URLs do not match.");
+    process.exit(1);
+}
+
+console.log("Both database URLs match.");
+NODE
+DATABASE_URL: Verified
+  Host: 127.0.0.1
+  Port: 5433
+  Database: ele469_test
+  User: ele469_user
+DIRECT_URL: Verified
+  Host: 127.0.0.1
+  Port: 5433
+  Database: ele469_test
+  User: ele469_user
+Both database URLs match.
+sophieplante@Sophies-Air expense-tracking-project % node --input-type=module <<'NODE'
+import { assertTestDatabase } from "./experiments/ele469/guard.mjs";
+import pg from "pg";
+
+assertTestDatabase();
+
+const client = new pg.Client({
+    connectionString: process.env.DATABASE_URL
+});
+
+try {
+    await client.connect();
+
+    const result = await client.query(`
+        SELECT current_database(),
+               current_user,
+               inet_server_addr(),
+               inet_server_port()
+    `);
+
+    const identity = result.rows[0];
+
+    console.table(result.rows);
+
+    if (
+        identity.current_database !== "ele469_test" ||
+        identity.current_user !== "ele469_user" ||
+        identity.inet_server_addr !== "127.0.0.1" ||
+        Number(identity.inet_server_port) !== 5433
+    ) {
+        throw new Error("Unexpected database identity.");
+    }
+
+    console.log("Database identity verified.");
+} finally {
+    await client.end();
+}
+NODE
+ELE469 database safety check passed.
+┌─────────┬──────────────────┬───────────────┬──────────────────┬──────────────────┐
+│ (index) │ current_database │ current_user  │ inet_server_addr │ inet_server_port │
+├─────────┼──────────────────┼───────────────┼──────────────────┼──────────────────┤
+│ 0       │ 'ele469_test'    │ 'ele469_user' │ '127.0.0.1'      │ 5433             │
+└─────────┴──────────────────┴───────────────┴──────────────────┴──────────────────┘
+Database identity verified.
+sophieplante@Sophies-Air expense-tracking-project % node --input-type=module -e 'import { assertTestDatabase } from "./experiments/ele469/guard.mjs"; assertTestDatabase();' \
+  && ./node_modules/.bin/prisma migrate deploy
+ELE469 database safety check passed.
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+Datasource "db": PostgreSQL database "ele469_test", schema "public" at "127.0.0.1:5433"
+
+17 migrations found in prisma/migrations
+
+Applying migration `20260823235253_create_models`
+Applying migration `20260829002552_add_savings_contributions`
+Applying migration `20260829135648_add_unique_category_budgets`
+Applying migration `20260829141557_add_loans_and_insurance_categories`
+Applying migration `20260829143958_add_savings_goal_icons`
+Applying migration `20260829194049_default_bills_to_non_recurring`
+Applying migration `20260829231621_add_account_to_savings_contributions`
+Applying migration `20260831164332_add_recurring_transaction_series`
+Applying migration `20260831204412_add_recurring_occurrence_key`
+Applying migration `20260831204725_add_recurring_anchor_key`
+Applying migration `20260922183026_add_bill_transaction_relationship`
+Applying migration `20260922185246_add_bill_anchor_day`
+Applying migration `20260922203206_add_bill_payment_scheduled`
+Applying migration `20260922204304_make_bill_payment_occurrences_unique`
+Applying migration `20260922223145_add_notifications`
+Applying migration `20260922225425_add_notification_dismissal`
+Applying migration `20260923232813_link_notifications_to_bills`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260823235253_create_models/
+    └─ migration.sql
+  └─ 20260829002552_add_savings_contributions/
+    └─ migration.sql
+  └─ 20260829135648_add_unique_category_budgets/
+    └─ migration.sql
+  └─ 20260829141557_add_loans_and_insurance_categories/
+    └─ migration.sql
+  └─ 20260829143958_add_savings_goal_icons/
+    └─ migration.sql
+  └─ 20260829194049_default_bills_to_non_recurring/
+    └─ migration.sql
+  └─ 20260829231621_add_account_to_savings_contributions/
+    └─ migration.sql
+  └─ 20260831164332_add_recurring_transaction_series/
+    └─ migration.sql
+  └─ 20260831204412_add_recurring_occurrence_key/
+    └─ migration.sql
+  └─ 20260831204725_add_recurring_anchor_key/
+    └─ migration.sql
+  └─ 20260922183026_add_bill_transaction_relationship/
+    └─ migration.sql
+  └─ 20260922185246_add_bill_anchor_day/
+    └─ migration.sql
+  └─ 20260922203206_add_bill_payment_scheduled/
+    └─ migration.sql
+  └─ 20260922204304_make_bill_payment_occurrences_unique/
+    └─ migration.sql
+  └─ 20260922223145_add_notifications/
+    └─ migration.sql
+  └─ 20260922225425_add_notification_dismissal/
+    └─ migration.sql
+  └─ 20260923232813_link_notifications_to_bills/
+    └─ migration.sql
+
+All migrations have been successfully applied.
+sophieplante@Sophies-Air expense-tracking-project % node --input-type=module -e 'import { assertTestDatabase } from "./experiments/ele469/guard.mjs"; assertTestDatabase();' \
+  && ./node_modules/.bin/prisma migrate status
+ELE469 database safety check passed.
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+Datasource "db": PostgreSQL database "ele469_test", schema "public" at "127.0.0.1:5433"
+
+17 migrations found in prisma/migrations
+
+┌─────────────────────────────────────────────────────────┐
+│  Update available 7.9.1 -> 8.0.0-rc.35                  │
+│                                                         │
+│  This is a major update - please follow the guide at    │
+│  https://pris.ly/d/major-version-upgrade                │
+│                                                         │
+│  Run the following to update                            │
+│    npm i --save-dev prisma@latest                       │
+│    npm i @prisma/client@latest                          │
+└─────────────────────────────────────────────────────────┘
+Database schema is up to date!
+sophieplante@Sophies-Air expense-tracking-project % node --input-type=module <<'NODE'
+import { assertTestDatabase } from "./experiments/ele469/guard.mjs";
+import pg from "pg";
+
+assertTestDatabase();
+
+const client = new pg.Client({
+    connectionString: process.env.DATABASE_URL
+});
+
+try {
+    await client.connect();
+
+    const result = await client.query(`
+        SELECT tablename, indexname, indexdef
+        FROM pg_indexes
+        WHERE schemaname = 'public'
+          AND tablename IN ('Transaction', 'RecurringTransaction')
+        ORDER BY tablename, indexname
+    `);
+
+    console.table(result.rows);
+} finally {
+    await client.end();
+}
+NODE
+ELE469 database safety check passed.
+┌─────────┐
+│ (index) │
+├─────────┤
+└─────────┘
+sophieplante@Sophies-Air expense-tracking-project % node --input-type=module <<'NODE'
+import { assertTestDatabase } from "./experiments/ele469/guard.mjs";
+import pg from "pg";
+
+assertTestDatabase();
+
+const client = new pg.Client({
+    connectionString: process.env.DATABASE_URL
+});
+
+try {
+    await client.connect();
+
+    const tables = await client.query(`
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public'
+        ORDER BY tablename
+    `);
+
+    console.log("\nDatabase tables:");
+    console.table(tables.rows);
+
+    const indexes = await client.query(`
+        SELECT tablename, indexname, indexdef
+        FROM pg_indexes
+        WHERE schemaname = 'public'
+        ORDER BY tablename, indexname
+    `);
+
+    console.log("\nDatabase indexes:");
+
+    for (const index of indexes.rows) {
+        console.log(index.indexdef);
+    }
+} finally {
+    await client.end();
+}
+NODE
+ELE469 database safety check passed.
+
+Database tables:
+┌─────────┬──────────────────────────┐
+│ (index) │ tablename                │
+├─────────┼──────────────────────────┤
+│ 0       │ '_prisma_migrations'     │
+│ 1       │ 'accounts'               │
+│ 2       │ 'bills'                  │
+│ 3       │ 'budgets'                │
+│ 4       │ 'notifications'          │
+│ 5       │ 'recurring_transactions' │
+│ 6       │ 'savingsContributions'   │
+│ 7       │ 'savingsGoals'           │
+│ 8       │ 'transactions'           │
+│ 9       │ 'users'                  │
+└─────────┴──────────────────────────┘
+
+Database indexes:
+CREATE UNIQUE INDEX _prisma_migrations_pkey ON public._prisma_migrations USING btree (id)
+CREATE UNIQUE INDEX accounts_pkey ON public.accounts USING btree (id)
+CREATE INDEX "accounts_userId_idx" ON public.accounts USING btree ("userId")
+CREATE INDEX "bills_accountId_idx" ON public.bills USING btree ("accountId")
+CREATE INDEX "bills_dueDate_idx" ON public.bills USING btree ("dueDate")
+CREATE UNIQUE INDEX bills_pkey ON public.bills USING btree (id)
+CREATE INDEX "bills_userId_idx" ON public.bills USING btree ("userId")
+CREATE UNIQUE INDEX budgets_pkey ON public.budgets USING btree (id)
+CREATE UNIQUE INDEX "budgets_userId_category_key" ON public.budgets USING btree ("userId", category)
+CREATE INDEX "budgets_userId_idx" ON public.budgets USING btree ("userId")
+CREATE INDEX "notifications_billId_idx" ON public.notifications USING btree ("billId")
+CREATE UNIQUE INDEX "notifications_billId_scheduledFor_type_key" ON public.notifications USING btree ("billId", "scheduledFor", type)
+CREATE INDEX "notifications_createdAt_idx" ON public.notifications USING btree ("createdAt")
+CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)
+CREATE INDEX "notifications_userId_idx" ON public.notifications USING btree ("userId")
+CREATE INDEX "notifications_userId_isRead_idx" ON public.notifications USING btree ("userId", "isRead")
+CREATE INDEX "recurring_transactions_accountId_idx" ON public.recurring_transactions USING btree ("accountId")
+CREATE INDEX "recurring_transactions_nextRecurringDate_idx" ON public.recurring_transactions USING btree ("nextRecurringDate")
+CREATE UNIQUE INDEX recurring_transactions_pkey ON public.recurring_transactions USING btree (id)
+CREATE INDEX "recurring_transactions_userId_idx" ON public.recurring_transactions USING btree ("userId")
+CREATE INDEX "savingsContributions_accountId_idx" ON public."savingsContributions" USING btree ("accountId")
+CREATE INDEX "savingsContributions_date_idx" ON public."savingsContributions" USING btree (date)
+CREATE UNIQUE INDEX "savingsContributions_pkey" ON public."savingsContributions" USING btree (id)
+CREATE INDEX "savingsContributions_savingsGoalId_idx" ON public."savingsContributions" USING btree ("savingsGoalId")
+CREATE INDEX "savingsContributions_userId_idx" ON public."savingsContributions" USING btree ("userId")
+CREATE UNIQUE INDEX "savingsGoals_pkey" ON public."savingsGoals" USING btree (id)
+CREATE INDEX "savingsGoals_userId_idx" ON public."savingsGoals" USING btree ("userId")
+CREATE INDEX "transactions_accountId_idx" ON public.transactions USING btree ("accountId")
+CREATE INDEX "transactions_billId_idx" ON public.transactions USING btree ("billId")
+CREATE UNIQUE INDEX "transactions_billId_scheduledFor_key" ON public.transactions USING btree ("billId", "scheduledFor")
+CREATE UNIQUE INDEX transactions_pkey ON public.transactions USING btree (id)
+CREATE INDEX "transactions_recurringTransactionId_idx" ON public.transactions USING btree ("recurringTransactionId")
+CREATE UNIQUE INDEX "transactions_recurringTransactionId_scheduledFor_key" ON public.transactions USING btree ("recurringTransactionId", "scheduledFor")
+CREATE INDEX "transactions_userId_idx" ON public.transactions USING btree ("userId")
+CREATE UNIQUE INDEX "users_clerkUserId_key" ON public.users USING btree ("clerkUserId")
+CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email)
+CREATE UNIQUE INDEX "users_phoneNumber_key" ON public.users USING btree ("phoneNumber")
+CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)
+sophieplante@Sophies-Air expense-tracking-project % CREATE UNIQUE INDEX
+"transactions_recurringTransactionId_scheduledFor_key"
+ON public.transactions
+USING btree ("recurringTransactionId", "scheduledFor")
+zsh: command not found: CREATE
+zsh: command not found: transactions_recurringTransactionId_scheduledFor_key
+zsh: command not found: ON
+zsh: unknown file attribute: i
+sophieplante@Sophies-Air expense-tracking-project % CREATE INDEX
+"recurring_transactions_nextRecurringDate_idx"
+ON public.recurring_transactions
+USING btree ("nextRecurringDate")
+zsh: command not found: CREATE
+zsh: command not found: recurring_transactions_nextRecurringDate_idx
+zsh: command not found: ON
+zsh: missing end of string
+sophieplante@Sophies-Air expense-tracking-project % npm ls tsx --all
+expense-tracking-project@0.1.0 /Users/sophieplante/expense-tracking-project
+└── (empty)
+
+sophieplante@Sophies-Air expense-tracking-project % npm install --save-dev tsx --ignore-scripts
+
+added 4 packages, and audited 990 packages in 43s
+
+269 packages are looking for funding
+  run `npm fund` for details
+
+38 vulnerabilities (18 moderate, 18 high, 2 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+sophieplante@Sophies-Air expense-tracking-project % ./node_modules/.bin/tsx --version
+tsx v4.23.15
+node v24.17.0
+sophieplante@Sophies-Air expense-tracking-project % ./node_modules/.bin/tsx -e 'import { verifyTestDatabase } from "./experiments/ele469/setup.ts"; verifyTestDatabase().catch(error => { console.error(error); process.exitCode = 1; });'
+ELE469 database safety check passed.
+Experimental database verified.
+sophieplante@Sophies-Air expense-tracking-project % ./node_modules/.bin/tsx -e ' 
+import { initializeTestDatabase } from "./experiments/ele469/setup.ts";
+
+async function main() {
+    const db = await initializeTestDatabase();
+
+    try {
+        console.log("Users:", await db.user.count());
+        console.log("Accounts:", await db.account.count());
+        console.log("Recurring series:", await db.recurringTransaction.count()); 
+        console.log("Transactions:", await db.transaction.count());
+    } finally {
+        await db.$disconnect();
+    }
+}
+
+main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});
+'
+ELE469 database safety check passed.
+Experimental database verified.
+Users: 0
+Accounts: 0
+Recurring series: 0
+Transactions: 0
+sophieplante@Sophies-Air expense-tracking-project % >....                       
+    createTestUser,
+    createTestAccount,
+    createRecurringExpense,
+    cleanupTestData
+} from "./experiments/ele469/setup.ts";
+
+async function main() {
+    const db = await initializeTestDatabase();
+    let userId: string | undefined;
+
+    try {
+        const user = await createTestUser(db);
+        userId = user.id;
+
+        const account = await createTestAccount(db, user.id);
+
+        const recurring = await createRecurringExpense(
+            db,
+            user.id,
+            account.id
+        );
+
+        console.log("User:", user.name);
+        console.log("Account:", account.name);
+        console.log("Initial balance:", account.balance.toString());
+        console.log("Recurring amount:", recurring.amount.toString());
+        console.log("Interval:", recurring.interval);
+        console.log("Scheduled date:", recurring.nextRecurringDate);
+        console.log("Transactions:", await db.transaction.count());
+
+    } finally {
+        try {
+            if (userId) {
+                await cleanupTestData(db, userId);
+            }
+        } finally {
+            await db.$disconnect();
+        }
+    }
+}
+
+main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});
+'
+ELE469 database safety check passed.
+Experimental database verified.
+User: ELE469 Test User
+Account: ELE469 Test Checking
+Initial balance: 1000
+Recurring amount: 50
+Interval: DAILY
+Scheduled date: 2026-11-25T00:12:50.681Z
+Transactions: 0
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+sophieplante@Sophies-Air expense-tracking-project % ./node_modules/.bin/tsx experiments/ele469/baseline.ts
+ELE469 database safety check passed.
+Experimental database verified.
+
+--- Baseline Test: Initial State ---
+┌──────────────────┬────────────────────────────┐
+│ (index)          │ Values                     │
+├──────────────────┼────────────────────────────┤
+│ accountBalance   │ 1000                       │
+│ recurringAmount  │ 50                         │
+│ scheduledDate    │ '2026-11-25T00:13:25.546Z' │
+│ transactionCount │ 0                          │
+└──────────────────┴────────────────────────────┘
+
+--- Baseline Test: Final State ---
+┌────────────────────┬────────────────────────────┐
+│ (index)            │ Values                     │
+├────────────────────┼────────────────────────────┤
+│ seriesProcessed    │ 1                          │
+│ occurrencesCreated │ 1                          │
+│ accountBalance     │ 950                        │
+│ transactionCount   │ 1                          │
+│ nextRecurringDate  │ '2026-11-26T00:13:25.546Z' │
+│ lastProcessed      │ '2026-11-25T00:13:25.546Z' │
+└────────────────────┴────────────────────────────┘
+
+BASELINE TEST PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+sophieplante@Sophies-Air expense-tracking-project % ./node_modules/.bin/tsx experiments/ele469/experiment1.ts
+ELE469 database safety check passed.
+Experimental database verified.
+
+--- Repeated Executions ---
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 1: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 2: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 3: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 4: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 5: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 6: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 7: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 8: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 9: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Repeated trial 10: PASSED
+
+--- Concurrent Executions ---
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 1: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 2: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 3: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 4: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 5: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 6: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 7: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 8: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 9: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Concurrent trial 10: PASSED
+
+--- Individual Trial Results ---
+┌─────────┬──────────────┬───────┬─────────────┬────────────────┬────────────────────┬──────────────────┬──────────────────┬──────────────┬──────────────┬─────────────────┬────────┐
+│ (index) │ scenario     │ trial │ invocations │ seriesSelected │ occurrencesCreated │ transactionCount │ duplicateRecords │ finalBalance │ balanceError │ scheduleCorrect │ passed │
+├─────────┼──────────────┼───────┼─────────────┼────────────────┼────────────────────┼──────────────────┼──────────────────┼──────────────┼──────────────┼─────────────────┼────────┤
+│ 0       │ 'Repeated'   │ 1     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 1       │ 'Repeated'   │ 2     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 2       │ 'Repeated'   │ 3     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 3       │ 'Repeated'   │ 4     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 4       │ 'Repeated'   │ 5     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 5       │ 'Repeated'   │ 6     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 6       │ 'Repeated'   │ 7     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 7       │ 'Repeated'   │ 8     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 8       │ 'Repeated'   │ 9     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 9       │ 'Repeated'   │ 10    │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 10      │ 'Concurrent' │ 1     │ 5           │ 1              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 11      │ 'Concurrent' │ 2     │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 12      │ 'Concurrent' │ 3     │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 13      │ 'Concurrent' │ 4     │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 14      │ 'Concurrent' │ 5     │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 15      │ 'Concurrent' │ 6     │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 16      │ 'Concurrent' │ 7     │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 17      │ 'Concurrent' │ 8     │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 18      │ 'Concurrent' │ 9     │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+│ 19      │ 'Concurrent' │ 10    │ 5           │ 5              │ 1                  │ 1                │ 0                │ 950          │ 0            │ true            │ true   │
+└─────────┴──────────────┴───────┴─────────────┴────────────────┴────────────────────┴──────────────────┴──────────────────┴──────────────┴──────────────┴─────────────────┴────────┘
+
+--- Experiment 1 Summary ---
+┌─────────┬──────────────┬────────┬──────────────────┬─────────────────────┬─────────────────────────┬───────────────────────┬─────────────────┬────────────────┬──────────────┬──────────┐
+│ (index) │ scenario     │ trials │ totalInvocations │ totalSeriesSelected │ totalOccurrencesCreated │ totalDuplicateRecords │ maxBalanceError │ scheduleErrors │ passedTrials │ passRate │
+├─────────┼──────────────┼────────┼──────────────────┼─────────────────────┼─────────────────────────┼───────────────────────┼─────────────────┼────────────────┼──────────────┼──────────┤
+│ 0       │ 'Repeated'   │ 10     │ 50               │ 10                  │ 10                      │ 0                     │ 0               │ 0              │ 10           │ 100      │
+│ 1       │ 'Concurrent' │ 10     │ 50               │ 46                  │ 10                      │ 0                     │ 0               │ 0              │ 10           │ 100      │
+└─────────┴──────────────┴────────┴──────────────────┴─────────────────────┴─────────────────────────┴───────────────────────┴─────────────────┴────────────────┴──────────────┴──────────┘
+
+Experimental database cleanup verified.
+
+EXPERIMENT 1 PASSED
+sophieplante@Sophies-Air expense-tracking-project % >....                       
+        // Remove the failure condition.
+        await removeFailureTrigger();
+        triggerInstalled = false;
+
+        // Retry the failed update.
+        const recoveredAccount = await db.account.update({
+            where: { id: account.id },
+            data: {
+                balance: { decrement: 50 }
+            }
+        });
+
+        assert.equal(
+            recoveredAccount.balance.toNumber(),
+            900
+        );
+
+        console.log(
+            "Balance after recovery:",
+            recoveredAccount.balance.toNumber()
+        );
+
+        console.log("\nFAILURE INJECTION TEST PASSED");
+
+    } finally {
+        try {
+            if (triggerInstalled) {
+                await removeFailureTrigger();
+            }
+        } finally {
+            try {
+                if (userId) {
+                    await cleanupTestData(db, userId);
+                }
+            } finally {
+                await db.$disconnect();
+            }
+        }
+    }
+}
+
+main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});
+'
+ELE469 database safety check passed.
+Experimental database verified.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+First update succeeded: 950
+Expected database failure detected.
+Balance after failure: 950
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+Balance after recovery: 900
+
+FAILURE INJECTION TEST PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+sophieplante@Sophies-Air expense-tracking-project % ./node_modules/.bin/tsx experiments/ele469/experiment2.ts
+ELE469 database safety check passed.
+Experimental database verified.
+
+--- Failure Handling and Recovery ---
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 1: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 2: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 3: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 4: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 5: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 6: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 7: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 8: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 9: PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger installed.
+ELE469 database safety check passed.
+Experimental database verified.
+Failure injection trigger removed.
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Failure recovery trial 10: PASSED
+
+--- Individual Trial Results ---
+┌─────────┬───────┬─────────────────┬─────────────────────┬──────────────────────────┬─────────────────┬───────────────────────┬──────────────────────┬──────────────┬───────────────────────┬──────────────────┬──────────────┬─────────────────┬────────┐
+│ (index) │ trial │ failureDetected │ balanceAfterFailure │ transactionsAfterFailure │ rollbackCorrect │ previousWorkPreserved │ recoveredOccurrences │ finalBalance │ finalTransactionCount │ duplicateRecords │ balanceError │ scheduleCorrect │ passed │
+├─────────┼───────┼─────────────────┼─────────────────────┼──────────────────────────┼─────────────────┼───────────────────────┼──────────────────────┼──────────────┼───────────────────────┼──────────────────┼──────────────┼─────────────────┼────────┤
+│ 0       │ 1     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 1       │ 2     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 2       │ 3     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 3       │ 4     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 4       │ 5     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 5       │ 6     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 6       │ 7     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 7       │ 8     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 8       │ 9     │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+│ 9       │ 10    │ true            │ 950                 │ 1                        │ true            │ true                  │ 1                    │ 900          │ 2                     │ 0                │ 0            │ true            │ true   │
+└─────────┴───────┴─────────────────┴─────────────────────┴──────────────────────────┴─────────────────┴───────────────────────┴──────────────────────┴──────────────┴───────────────────────┴──────────────────┴──────────────┴─────────────────┴────────┘
+
+--- Experiment 2 Summary ---
+┌───────────────────────────┬────────┐
+│ (index)                   │ Values │
+├───────────────────────────┼────────┤
+│ trials                    │ 10     │
+│ failuresDetected          │ 10     │
+│ successfulRollbacks       │ 10     │
+│ previousWorkPreserved     │ 10     │
+│ totalRecoveredOccurrences │ 10     │
+│ totalFinalTransactions    │ 20     │
+│ totalDuplicateRecords     │ 0      │
+│ maxBalanceError           │ 0      │
+│ scheduleErrors            │ 0      │
+│ passedTrials              │ 10     │
+│ passRate                  │ 100    │
+└───────────────────────────┴────────┘
+
+Experimental database cleanup verified.
+
+EXPERIMENT 2 PASSED
+sophieplante@Sophies-Air expense-tracking-project % ./node_modules/.bin/tsx experiments/ele469/experiment3.ts
+ELE469 database safety check passed.
+Experimental database verified.
+
+--- Warm-up Trials ---
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1: warm-up completed
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10: warm-up completed
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50: warm-up completed
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100: warm-up completed
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500: warm-up completed
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000: warm-up completed
+
+--- Performance Trials ---
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 1 | 1.57 ms | 634.92 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 1 | 11.35 ms | 881.04 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 1 | 49.74 ms | 1005.13 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 1 | 101.79 ms | 982.37 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 1 | 485.67 ms | 1029.50 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 1 | 1003.36 ms | 996.65 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 2 | 10.93 ms | 915.02 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 2 | 55.23 ms | 905.32 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 2 | 104.29 ms | 958.83 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 2 | 473.65 ms | 1055.63 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 2 | 969.62 ms | 1031.33 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 2 | 1.80 ms | 556.68 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 3 | 52.43 ms | 953.59 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 3 | 101.10 ms | 989.09 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 3 | 516.91 ms | 967.30 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 3 | 1057.19 ms | 945.90 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 3 | 1.87 ms | 535.52 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 3 | 11.16 ms | 896.40 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 4 | 103.74 ms | 963.98 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 4 | 498.82 ms | 1002.36 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 4 | 1052.20 ms | 950.39 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 4 | 1.78 ms | 562.14 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 4 | 11.36 ms | 880.41 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 4 | 53.79 ms | 929.51 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 5 | 527.86 ms | 947.22 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 5 | 1063.13 ms | 940.62 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 5 | 1.78 ms | 561.52 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 5 | 11.62 ms | 860.61 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 5 | 56.63 ms | 882.89 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 5 | 104.27 ms | 959.09 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 6 | 1138.43 ms | 878.40 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 6 | 3.60 ms | 277.74 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 6 | 11.67 ms | 856.82 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 6 | 55.21 ms | 905.60 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 6 | 110.99 ms | 900.96 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 6 | 544.91 ms | 917.58 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 7 | 2.07 ms | 483.44 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 7 | 11.74 ms | 852.04 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 7 | 56.73 ms | 881.34 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 7 | 108.69 ms | 920.03 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 7 | 547.14 ms | 913.84 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 7 | 1114.87 ms | 896.97 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 8 | 11.78 ms | 848.96 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 8 | 55.58 ms | 899.61 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 8 | 111.74 ms | 894.97 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 8 | 556.16 ms | 899.02 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 8 | 1112.24 ms | 899.09 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 8 | 2.16 ms | 462.30 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 9 | 71.98 ms | 694.66 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 9 | 126.92 ms | 787.90 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 9 | 581.22 ms | 860.27 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 9 | 1153.95 ms | 866.59 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 9 | 2.00 ms | 499.42 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 9 | 12.29 ms | 813.81 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 100 | Trial 10 | 115.23 ms | 867.85 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 500 | Trial 10 | 567.17 ms | 881.58 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1000 | Trial 10 | 1181.76 ms | 846.20 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 1 | Trial 10 | 2.12 ms | 472.26 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 10 | Trial 10 | 12.72 ms | 786.46 occ/s | PASSED
+ELE469 database safety check passed.
+Experimental database verified.
+Synthetic test data removed.
+Workload 50 | Trial 10 | 104.94 ms | 476.44 occ/s | PASSED
+
+--- Experiment 3 Summary ---
+┌─────────┬──────────┬────────┬──────────┬──────────┬──────────┬─────────┬──────────┬────────────┬──────────────────┬──────────────────┬─────────────────┬────────────────┬──────────────┬──────────┐
+│ (index) │ workload │ trials │ meanMs   │ medianMs │ stdDevMs │ minMs   │ maxMs    │ throughput │ totalOccurrences │ duplicateRecords │ maxBalanceError │ scheduleErrors │ passedTrials │ passRate │
+├─────────┼──────────┼────────┼──────────┼──────────┼──────────┼─────────┼──────────┼────────────┼──────────────────┼──────────────────┼─────────────────┼────────────────┼──────────────┼──────────┤
+│ 0       │ 1        │ 10     │ 2.075    │ 1.935    │ 0.566    │ 1.575   │ 3.601    │ 481.918    │ 10               │ 0                │ 0               │ 0              │ 10           │ 100      │
+│ 1       │ 10       │ 10     │ 11.66    │ 11.645   │ 0.528    │ 10.929  │ 12.715   │ 857.614    │ 100              │ 0                │ 0               │ 0              │ 10           │ 100      │
+│ 2       │ 50       │ 10     │ 61.228   │ 55.405   │ 16.454   │ 49.745  │ 104.945  │ 816.624    │ 500              │ 0                │ 0               │ 0              │ 10           │ 100      │
+│ 3       │ 100      │ 10     │ 108.876  │ 106.493  │ 7.873    │ 101.103 │ 126.92   │ 918.477    │ 1000             │ 0                │ 0               │ 0              │ 10           │ 100      │
+│ 4       │ 500      │ 10     │ 529.951  │ 536.386  │ 35.736   │ 473.649 │ 581.215  │ 943.484    │ 5000             │ 0                │ 0               │ 0              │ 10           │ 100      │
+│ 5       │ 1000     │ 10     │ 1084.675 │ 1087.687 │ 67.42    │ 969.623 │ 1181.758 │ 921.936    │ 10000            │ 0                │ 0               │ 0              │ 10           │ 100      │
+└─────────┴──────────┴────────┴──────────┴──────────┴──────────┴─────────┴──────────┴────────────┴──────────────────┴──────────────────┴─────────────────┴────────────────┴──────────────┴──────────┘
+Results exported to experiment3-trials.csv
+Results exported to experiment3-summary.csv
+
+Experimental database cleanup verified.
+
+EXPERIMENT 3 PASSED
+sophieplante@Sophies-Air expense-tracking-project % 
